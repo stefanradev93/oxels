@@ -1,3 +1,10 @@
+# Custom ignores
+*.zip
+*.off
+*.pth
+*.ply
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

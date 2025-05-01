@@ -1,0 +1,19 @@
+name: oxels
+channels:
+  - defaults
+dependencies:
+  - python=3.13
+  - pip
+  - pip:
+      - jupyter
+      - jupyterlab
+      - numpy
+      - matplotlib
+      - seaborn
+      - pandas
+      - scikit-learn
+      - scipy
+      - tqdm
+      - torch
+      - torchvision
+      - timm
