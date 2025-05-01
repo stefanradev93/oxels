@@ -104,6 +104,9 @@ class RandomKernel:
 
         #kernel = np.random.random((sizex, sizey))-0.5
         kernel = np.random.randint(-2,3,(sizex, sizey)).astype(float)
+        
+        if np.sum(np.abs(kernel)) == 0:
+            return im
 
         # Normalize kernel to prevent overflow or weird brightness
         kernel /= np.sum(np.abs(kernel))
