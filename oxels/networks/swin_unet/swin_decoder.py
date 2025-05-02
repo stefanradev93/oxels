@@ -22,16 +22,15 @@ class SwinDecoder(nn.Module):
     def __init__(
         self, 
         patch_embed_dim: int,
-        input_resolution: tuple[int, int], 
         num_stages: int = 3, 
-        shift_size: int = 3, 
-        head_dim: int = 32
+        num_heads: int = 4, 
+        window_size: int = 3, 
+        shift_size: int = 3,
+        use_conv: bool = True, 
+        **kwargs
     ):
         super().__init__()
 
-        H, W = input_resolution
-        H = H // (2 ** (num_stages - 1))
-        W = W // (2 ** (num_stages - 1))
         dim = patch_embed_dim * (2 ** num_stages)
 
         self.patch_expand_blocks = nn.ModuleList()
@@ -41,12 +40,21 @@ class SwinDecoder(nn.Module):
         for _ in range(num_stages):
 
             self.patch_expand_blocks.append(PatchExpansion(dim))
+
             self.concat_linears.append(nn.Linear(dim, dim//2))
-            self.swin_blocks.append(SwinBlock(dim//2, (H, W), shift_size=shift_size, head_dim=head_dim))
+
+            swin_block = SwinBlock(
+                dim=dim // 2, 
+                num_heads=num_heads, 
+                window_size=window_size, 
+                shift_size=shift_size, 
+                use_conv=use_conv, 
+                **kwargs
+            )
+
+            self.swin_blocks.append(swin_block)
 
             dim = dim // 2
-            H *= 2
-            W *= 2
 
     def forward(self, x, skip_features):
         """

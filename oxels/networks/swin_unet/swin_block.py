@@ -1,5 +1,6 @@
 import torch.nn as nn
-from timm.models.swin_transformer import SwinTransformerBlock
+
+from torchvision.models.swin_transformer import SwinTransformerBlock
 
 
 class SwinBlock(nn.Module):
@@ -10,37 +11,46 @@ class SwinBlock(nn.Module):
     ----------
     dim : int
         The number of input and output channels for the Swin Transformer blocks.
-    input_res : Tuple[int, int]
-        The input resolution of the feature map (height, width).
     shift_size : int, optional
         The shift size for the second block, by default 3.
-    swin_version : str, optional
-        Version of Swin Transformer to use: "v1" or "v2", by default "v2".
-
-    Attributes
-    ----------
-    swtb1 : nn.Module
-        First Swin Transformer block (non-shifted).
-    swtb2 : nn.Module
-        Second Swin Transformer block (shifted).
+    head_dim: int, optional
+        The dimension of the heads used
     """
-    def __init__(self, dim: int, input_resolution: tuple[int, int], shift_size: int = 3, head_dim: int = 32, **kwargs):
+    def __init__(
+        self, 
+        dim: int, 
+        num_heads: int = 4, 
+        window_size: int = 3, 
+        shift_size: int = 3, 
+        use_conv: bool = True, 
+        **kwargs
+    ):
         super().__init__()
         
         self.swtb1 = SwinTransformerBlock(
             dim=dim, 
-            input_resolution=input_resolution, 
-            head_dim=head_dim, 
+            num_heads=num_heads,
+            window_size=[window_size, window_size],
+            shift_size=[0, 0],
             **kwargs
         )
 
         self.swtb2 = SwinTransformerBlock(
             dim=dim, 
-            input_resolution=input_resolution, 
-            head_dim=head_dim, 
-            shift_size=shift_size, 
+            num_heads=num_heads,
+            window_size=[window_size, window_size],
+            shift_size=[shift_size, shift_size],
             **kwargs
         )
+        
+        if use_conv:
+            self.conv = nn.Sequential(
+                nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim),  # Depthwise
+                nn.GELU(),
+                nn.Conv2d(dim, dim, kernel_size=1)  # Pointwise
+            )
+
+        self.use_conv = use_conv
 
     def forward(self, x):
         """
@@ -56,4 +66,19 @@ class SwinBlock(nn.Module):
         torch.Tensor
             Output tensor after two Swin Transformer blocks, of same shape as input.
         """
-        return self.swtb2(self.swtb1(x))
+
+        x_swin = self.swtb1(x)
+        x_swin = self.swtb2(x_swin)
+
+        if self.use_conv:
+            # Convert to (B, C, H, W)
+            x_conv = x.permute(0, 3, 1, 2).contiguous()
+            x_conv = self.conv(x_conv)
+            x_conv = x_conv.permute(0, 2, 3, 1).contiguous()
+
+            # Fuse Swin + Conv
+            x_out = x_swin + x_conv
+        else:
+            x_out = x_swin
+
+        return x_out

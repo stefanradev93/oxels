@@ -23,10 +23,12 @@ class SwinEncoder(nn.Module):
     def __init__(
         self, 
         patch_embed_dim: int,
-        input_resolution: tuple[int, int], 
         num_stages: int = 3, 
-        shift_size: int = 3, 
-        head_dim: int = 32
+        num_heads: int = 4, 
+        window_size: int = 3, 
+        shift_size: int = 3,
+        use_conv: bool = True, 
+        **kwargs
     ):
         super().__init__()
 
@@ -34,17 +36,25 @@ class SwinEncoder(nn.Module):
         self.swin_blocks = nn.ModuleList()
         self.patch_merge_blocks = nn.ModuleList()
 
-        H, W = input_resolution
         dim = patch_embed_dim
 
         for _ in range(num_stages):
-            self.swin_blocks.append(SwinBlock(dim, (H, W), shift_size=shift_size, head_dim=head_dim))
+
+            swin_block = SwinBlock(
+                dim=dim, 
+                num_heads=num_heads, 
+                window_size=window_size, 
+                shift_size=shift_size,
+                use_conv=use_conv,
+                **kwargs
+            )
+
+            self.swin_blocks.append(swin_block)
+
             self.patch_merge_blocks.append(PatchMerging(dim))
 
-            # Prepare for next stage
-            H //= 2
-            W //= 2
             dim *= 2
+
 
     def forward(self, x):
         """
@@ -62,6 +72,7 @@ class SwinEncoder(nn.Module):
         skip_features : List[torch.Tensor]
             List of features at each resolution for use in skip connections.
         """
+        
         skip_features = []
 
         for swin_block, patch_merger in zip(self.swin_blocks, self.patch_merge_blocks):
