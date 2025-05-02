@@ -114,7 +114,7 @@ class RandomKernel:
         # Apply the kernel using filter2D
         im = cv2.filter2D(im, -1, kernel)
         im -= im.min()
-        im /= im.max()
+        im /= np.abs(im.max()) + 1e-6
         im *= (immax - immin)
         im += immin
         return im
