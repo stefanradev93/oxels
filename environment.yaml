@@ -17,3 +17,5 @@ dependencies:
       - torch
       - torchvision
       - opencv-python
+      - diffusers
+      - wandb

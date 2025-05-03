@@ -1,2 +1,2 @@
-from .dataset import OxelDataset
-from .perspective_images_dataset import PerspectiveImagesDataset
+from .oxel_dataset import OxelDataset
+from .perspective_dataset import PerspectiveDataset
