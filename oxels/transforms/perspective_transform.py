@@ -77,6 +77,7 @@ class PerspectiveTransform:
         match = (
             (ind[:, 1] > sub_x) & (ind[:, 1] < self.w + sub_x) & (ind[:, 0] > sub_y) & (ind[:, 0] < self.h + sub_y)
         ).reshape((-1, 1))
+
         match &= np.random.random(match.shape) < self.frac_keep
 
         random_ind = np.stack(
