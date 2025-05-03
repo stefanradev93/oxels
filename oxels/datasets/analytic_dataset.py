@@ -5,7 +5,7 @@ from .oxel_dataset import OxelDataset
 from oxels.analytical_benchmark import TwoShapes
 
 
-class AnalyticalDataset(OxelDataset):
+class AnalyticDataset(OxelDataset):
     def __init__(
         self, n_samples: int, augmentation: Callable, w, h, frac_keep=0.125, max_dxy=0.5, max_scale=0.4, max_skew=0.2
     ):
@@ -87,4 +87,11 @@ class AnalyticalDataset(OxelDataset):
         indices, flags = self._get_indices(-cgs[0], cgs[1], Mgs[1].dot(np.linalg.inv(Mgs[0])))
         mask = np.ones(flags.shape, dtype=bool)
 
-        return views[0], views[1], indices, flags, mask, mask
+        return (
+            views[0][:, :, None].astype(np.float32, copy=False),
+            views[1][:, :, None].astype(np.float32, copy=False),
+            indices,
+            flags,
+            mask,
+            mask,
+        )

@@ -1,7 +1,7 @@
 import torch
 
 
-def original_loss_func(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tensor:
+def original_loss(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tensor:
     """
     Computes a custom contrastive-style loss between two spatially transformed views
     of an image representation (oxel space), using a soft matching scheme and visibility masks.
