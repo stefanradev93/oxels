@@ -1,1 +1,1 @@
-from .original_loss import original_loss_func
+from .original_loss import original_loss

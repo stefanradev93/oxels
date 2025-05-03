@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_channels(image, cmap='gray'):
+def plot_channels(im: np.ndarray, cmap: str = "gray"):
     """
     Visualizes a multi-channel image (shape: [C, H, W]) using subplots.
 
@@ -10,13 +10,13 @@ def plot_channels(image, cmap='gray'):
         image (np.ndarray or torch.Tensor): Input image of shape (C, H, W)
         cmap (str): Color map for plotting, e.g., 'gray' or 'viridis'
     """
-    if hasattr(image, 'detach'):  # torch.Tensor support
-        image = image.detach().cpu().numpy()
+    if hasattr(im, "detach"):
+        im = im.detach().cpu().numpy()
 
-    if image.ndim != 3:
+    if im.ndim != 3:
         raise ValueError("Input image must have shape (C, H, W)")
 
-    channels, height, width = image.shape
+    channels, height, width = im.shape
     cols = int(np.ceil(np.sqrt(channels)))
     rows = int(np.ceil(channels / cols))
 
@@ -24,13 +24,13 @@ def plot_channels(image, cmap='gray'):
     axes = axes.flatten()
 
     for i in range(channels):
-        axes[i].imshow(image[i], cmap=cmap)
-        axes[i].set_title(f'Channel {i}')
-        axes[i].axis('off')
+        axes[i].imshow(im[i], cmap=cmap)
+        axes[i].set_title(f"Channel {i}")
+        axes[i].axis("off")
 
     # Hide unused axes
     for i in range(channels, len(axes)):
-        axes[i].axis('off')
+        axes[i].axis("off")
 
-    plt.tight_layout()
+    fig.tight_layout()
     return fig

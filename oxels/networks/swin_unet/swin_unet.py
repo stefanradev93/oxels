@@ -40,64 +40,70 @@ class SwinUNet(nn.Module):
     """
 
     ...
+
     def __init__(
         self,
-        channels: int, 
-        patch_embed_dim: int = 32, 
-        patch_size: int = 4, 
+        channels: int,
+        patch_embed_dim: int = 32,
+        patch_size: int = 4,
         num_stages: int = 3,
         oxel_dim: int = 16,
         window_size: int = 3,
         shift_size: int = 3,
         num_heads: int = 4,
-        use_conv: bool = True, 
+        use_conv: bool = True,
         add_identity: bool = True,
-        **kwargs
+        **kwargs,
     ):
-
         super().__init__()
 
         self.patch_embed = PatchEmbedding(channels, patch_embed_dim, patch_size)
 
         self.encoder = SwinEncoder(
-            patch_embed_dim=patch_embed_dim, 
+            patch_embed_dim=patch_embed_dim,
             shift_size=shift_size,
             window_size=window_size,
             num_heads=num_heads,
             num_stages=num_stages,
-            use_conv=True, 
-            **kwargs
+            use_conv=use_conv,
+            **kwargs,
         )
 
         self.bottleneck = SwinBlock(
-            dim=patch_embed_dim * (2 ** num_stages),
+            dim=patch_embed_dim * (2**num_stages),
             shift_size=shift_size,
             window_size=window_size,
             num_heads=num_heads,
-            use_conv=True,
-            **kwargs
+            use_conv=use_conv,
+            **kwargs,
         )
 
         self.decoder = SwinDecoder(
-            patch_embed_dim=patch_embed_dim, 
+            patch_embed_dim=patch_embed_dim,
             shift_size=shift_size,
             window_size=window_size,
             num_heads=num_heads,
             num_stages=num_stages,
-            use_conv=True,
-            **kwargs
+            use_conv=use_conv,
+            **kwargs,
         )
-        
+
         self.add_identity = add_identity
-        
+
         if add_identity:
-            final_patch_dim = patch_embed_dim*2
+            final_patch_dim = patch_embed_dim * 2
         else:
             final_patch_dim = patch_embed_dim
 
-        self.final_patch_expansion = PatchExpansion(dim=final_patch_dim, scale=patch_size, reduce_dim=False)
+        self.final_patch_expansion = PatchExpansion(dim=final_patch_dim, scale=patch_size, reduce_dim=True)
 
-        self.head = nn.Conv2d(final_patch_dim, oxel_dim, kernel_size=1, padding='same')
+        self.head = nn.Sequential(
+            nn.Conv2d(final_patch_dim // patch_size, final_patch_dim // patch_size, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(final_patch_dim // patch_size, final_patch_dim // patch_size, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(final_patch_dim // patch_size, oxel_dim, kernel_size=3, padding=1),
+        )
 
     def forward(self, x):
         """
@@ -118,18 +124,18 @@ class SwinUNet(nn.Module):
             of output channels defined in the final convolutional layer (e.g., number of segmentation classes).
         """
         emb = self.patch_embed(x)
-        
+
         enc, skip_features = self.encoder(emb)
 
         enc = self.bottleneck(enc)
 
         dec = self.decoder(enc, skip_features)
-        
+
         if self.add_identity:
             dec = torch.cat((dec, emb), dim=-1)
-        
+
         dec = self.final_patch_expansion(dec)
-        
-        dec = self.head(dec.permute(0,3,1,2))
+
+        dec = self.head(dec.permute(0, 3, 1, 2))
 
         return dec
