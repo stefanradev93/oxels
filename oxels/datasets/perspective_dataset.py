@@ -4,13 +4,13 @@ import cv2
 import numpy as np
 
 from .oxel_dataset import OxelDataset
-from oxels.transforms import ImagePerspectiveTransform
+from oxels.transforms import PerspectiveTransform
 
 
 class PerspectiveDataset(OxelDataset):
-    def __init__(self, files: Sequence[str], augmentation: Callable, w, h, frac_keep=0.125):
+    def __init__(self, files: Sequence[str], augmentation: Callable, w: int, h: int, frac_keep: float = 0.125):
         super().__init__(files, augmentation)
-        self.transform = ImagePerspectiveTransform(w, h, frac_keep=frac_keep)
+        self.transform = PerspectiveTransform(w, h, frac_keep=frac_keep)
 
     def _get_data(self, file: str) -> Sequence[np.ndarray]:
         """
