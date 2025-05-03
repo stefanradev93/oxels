@@ -42,8 +42,6 @@ class OxelDataset(Dataset):
         raise NotImplementedError
     
     def __getitem__(self, index):
-        if index == 0:
-            self.shuffle()
 
         file = self.files[self.indices[index]]
 

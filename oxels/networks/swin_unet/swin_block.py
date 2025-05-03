@@ -20,17 +20,23 @@ class SwinBlock(nn.Module):
         self, 
         dim: int, 
         num_heads: int = 4, 
-        window_size: int = 3, 
-        shift_size: int = 3, 
+        window_size: list[int] | int = 3, 
+        shift_size: list[int] | int = 3, 
         use_conv: bool = True, 
         **kwargs
     ):
         super().__init__()
-        
+
+        if isinstance(window_size, int):
+            window_size = [window_size, window_size]
+
+        if isinstance(shift_size, int):
+            shift_size = [shift_size, shift_size]
+
         self.swtb1 = SwinTransformerBlock(
             dim=dim, 
             num_heads=num_heads,
-            window_size=[window_size, window_size],
+            window_size=window_size,
             shift_size=[0, 0],
             **kwargs
         )
@@ -38,11 +44,11 @@ class SwinBlock(nn.Module):
         self.swtb2 = SwinTransformerBlock(
             dim=dim, 
             num_heads=num_heads,
-            window_size=[window_size, window_size],
-            shift_size=[shift_size, shift_size],
+            window_size=window_size,
+            shift_size=shift_size,
             **kwargs
         )
-        
+
         if use_conv:
             self.conv = nn.Sequential(
                 nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim),  # Depthwise

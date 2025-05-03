@@ -65,7 +65,7 @@ class SwinUNet(nn.Module):
             window_size=window_size,
             num_heads=num_heads,
             num_stages=num_stages,
-            use_conv=True, 
+            use_conv=use_conv, 
             **kwargs
         )
 
@@ -74,7 +74,7 @@ class SwinUNet(nn.Module):
             shift_size=shift_size,
             window_size=window_size,
             num_heads=num_heads,
-            use_conv=True,
+            use_conv=use_conv,
             **kwargs
         )
 
@@ -84,10 +84,10 @@ class SwinUNet(nn.Module):
             window_size=window_size,
             num_heads=num_heads,
             num_stages=num_stages,
-            use_conv=True,
+            use_conv=use_conv,
             **kwargs
         )
-        
+
         self.add_identity = add_identity
         
         if add_identity:
@@ -95,9 +95,15 @@ class SwinUNet(nn.Module):
         else:
             final_patch_dim = patch_embed_dim
 
-        self.final_patch_expansion = PatchExpansion(dim=final_patch_dim, scale=patch_size, reduce_dim=False)
+        self.final_patch_expansion = PatchExpansion(dim=final_patch_dim, scale=patch_size, reduce_dim=True)
 
-        self.head = nn.Conv2d(final_patch_dim, oxel_dim, kernel_size=1, padding='same')
+        self.head = nn.Sequential(
+            nn.Conv2d(final_patch_dim // patch_size, final_patch_dim // patch_size, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(final_patch_dim // patch_size, final_patch_dim // patch_size, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(final_patch_dim // patch_size, oxel_dim, kernel_size=3, padding=1),
+        )
 
     def forward(self, x):
         """
@@ -124,12 +130,12 @@ class SwinUNet(nn.Module):
         enc = self.bottleneck(enc)
 
         dec = self.decoder(enc, skip_features)
-        
+
         if self.add_identity:
             dec = torch.cat((dec, emb), dim=-1)
-        
+
         dec = self.final_patch_expansion(dec)
-        
-        dec = self.head(dec.permute(0,3,1,2))
+
+        dec = self.head(dec.permute(0, 3, 1, 2))
 
         return dec

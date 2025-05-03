@@ -1,9 +1,9 @@
 import torch.nn as nn
 
-from .swin_block import SwinBlock
-from .patch_merging import PatchMerging
+from torchvision.models.swin_transformer import PatchMerging
 
-import torch.nn as nn
+from .swin_block import SwinBlock
+
 
 
 class SwinEncoder(nn.Module):
@@ -25,8 +25,8 @@ class SwinEncoder(nn.Module):
         patch_embed_dim: int,
         num_stages: int = 3, 
         num_heads: int = 4, 
-        window_size: int = 3, 
-        shift_size: int = 3,
+        window_size: list[int] | int = 3, 
+        shift_size: list[int] | int = 3, 
         use_conv: bool = True, 
         **kwargs
     ):
@@ -54,7 +54,6 @@ class SwinEncoder(nn.Module):
             self.patch_merge_blocks.append(PatchMerging(dim))
 
             dim *= 2
-
 
     def forward(self, x):
         """

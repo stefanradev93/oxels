@@ -24,8 +24,8 @@ class SwinDecoder(nn.Module):
         patch_embed_dim: int,
         num_stages: int = 3, 
         num_heads: int = 4, 
-        window_size: int = 3, 
-        shift_size: int = 3,
+        window_size: list[int] | int = 3, 
+        shift_size: list[int] | int = 3, 
         use_conv: bool = True, 
         **kwargs
     ):
