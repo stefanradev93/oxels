@@ -32,16 +32,15 @@ class SequentialStrategy:
         probabilities: Sequence[float] = None,
         ordered: bool = False,
         at_most_one: bool = False,
-        dtype: np.dtype = np.float32
+        dtype: np.dtype = np.float32,
     ):
-        
         if ordered and at_most_one:
             raise ValueError("`ordered` and `at_most_one` cannot both be True.")
-        
+
         if probabilities is not None:
             if len(probabilities) != len(augmentations):
-                raise ValueError("`augmentations` and `probabilities` need to have the same length.")            
-        
+                raise ValueError("`augmentations` and `probabilities` need to have the same length.")
+
         self.augmentations = augmentations
         self.probabilities = probabilities
         self.ordered = ordered

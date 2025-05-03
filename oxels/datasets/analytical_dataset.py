@@ -3,12 +3,11 @@ import numpy as np
 
 from .oxel_dataset import OxelDataset
 from oxels.analytical_benchmark import TwoShapes
-from oxels.transforms import ImagePerspectiveTransform
 
 
 class AnalyticalDataset(OxelDataset):
     def __init__(self, n_samples: int, augmentation: Callable, w, h, frac_keep=0.125):
-        super().__init__([None]*n_samples, augmentation) #we're not using files
+        super().__init__([None] * n_samples, augmentation)  # we're not using files
         self.two_shapes = TwoShapes(w, h)
 
     def _get_data(self, file: str) -> Sequence[np.ndarray]:
@@ -18,7 +17,7 @@ class AnalyticalDataset(OxelDataset):
         Parameters
         ----------
         file : ignored
-        
+
         Returns
         -------
         view1   : ndarray, shape (H, W, 3), dtype=float
@@ -35,7 +34,7 @@ class AnalyticalDataset(OxelDataset):
         mask2   : ndarray, shape (H, W), dtype=bool
             Which pixels of view2 should be used for loss computation
         """
-        
+
         im = self.two_shapes.get_image
 
         view1, view2, indices, flags, _, _ = self.transform.get_views_and_permutation(im)

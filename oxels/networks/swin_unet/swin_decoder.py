@@ -20,36 +20,35 @@ class SwinDecoder(nn.Module):
     """
 
     def __init__(
-        self, 
+        self,
         patch_embed_dim: int,
-        num_stages: int = 3, 
-        num_heads: int = 4, 
-        window_size: list[int] | int = 3, 
-        shift_size: list[int] | int = 3, 
-        use_conv: bool = True, 
-        **kwargs
+        num_stages: int = 3,
+        num_heads: int = 4,
+        window_size: list[int] | int = 3,
+        shift_size: list[int] | int = 3,
+        use_conv: bool = True,
+        **kwargs,
     ):
         super().__init__()
 
-        dim = patch_embed_dim * (2 ** num_stages)
+        dim = patch_embed_dim * (2**num_stages)
 
         self.patch_expand_blocks = nn.ModuleList()
         self.swin_blocks = nn.ModuleList()
         self.concat_linears = nn.ModuleList()
 
         for _ in range(num_stages):
-
             self.patch_expand_blocks.append(PatchExpansion(dim))
 
-            self.concat_linears.append(nn.Linear(dim, dim//2))
+            self.concat_linears.append(nn.Linear(dim, dim // 2))
 
             swin_block = SwinBlock(
-                dim=dim // 2, 
-                num_heads=num_heads, 
-                window_size=window_size, 
-                shift_size=shift_size, 
-                use_conv=use_conv, 
-                **kwargs
+                dim=dim // 2,
+                num_heads=num_heads,
+                window_size=window_size,
+                shift_size=shift_size,
+                use_conv=use_conv,
+                **kwargs,
             )
 
             self.swin_blocks.append(swin_block)
@@ -74,10 +73,7 @@ class SwinDecoder(nn.Module):
         """
         # Use skip features in reverse order
         for patch_expand, concat_proj, swin_block, skip in zip(
-            self.patch_expand_blocks,
-            self.concat_linears,
-            self.swin_blocks,
-            reversed(skip_features)
+            self.patch_expand_blocks, self.concat_linears, self.swin_blocks, reversed(skip_features)
         ):
             x = patch_expand(x)
             x = torch.cat([x, skip], dim=-1)

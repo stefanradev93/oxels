@@ -30,7 +30,6 @@ class MotionBlur:
         self.s_min = s_min
         self.s_max = s_max
 
-
     def get_motion_kernel(self):
         """
         Generate a random motion blur kernel based on a 2D random trajectory.

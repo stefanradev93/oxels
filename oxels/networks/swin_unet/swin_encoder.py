@@ -5,7 +5,6 @@ from torchvision.models.swin_transformer import PatchMerging
 from .swin_block import SwinBlock
 
 
-
 class SwinEncoder(nn.Module):
     """
     Swin-UNet encoder supporting arbitrary depth.
@@ -21,14 +20,14 @@ class SwinEncoder(nn.Module):
     """
 
     def __init__(
-        self, 
+        self,
         patch_embed_dim: int,
-        num_stages: int = 3, 
-        num_heads: int = 4, 
-        window_size: list[int] | int = 3, 
-        shift_size: list[int] | int = 3, 
-        use_conv: bool = True, 
-        **kwargs
+        num_stages: int = 3,
+        num_heads: int = 4,
+        window_size: list[int] | int = 3,
+        shift_size: list[int] | int = 3,
+        use_conv: bool = True,
+        **kwargs,
     ):
         super().__init__()
 
@@ -39,14 +38,13 @@ class SwinEncoder(nn.Module):
         dim = patch_embed_dim
 
         for _ in range(num_stages):
-
             swin_block = SwinBlock(
-                dim=dim, 
-                num_heads=num_heads, 
-                window_size=window_size, 
+                dim=dim,
+                num_heads=num_heads,
+                window_size=window_size,
                 shift_size=shift_size,
                 use_conv=use_conv,
-                **kwargs
+                **kwargs,
             )
 
             self.swin_blocks.append(swin_block)
@@ -71,7 +69,7 @@ class SwinEncoder(nn.Module):
         skip_features : List[torch.Tensor]
             List of features at each resolution for use in skip connections.
         """
-        
+
         skip_features = []
 
         for swin_block, patch_merger in zip(self.swin_blocks, self.patch_merge_blocks):

@@ -16,14 +16,15 @@ class SwinBlock(nn.Module):
     head_dim: int, optional
         The dimension of the heads used
     """
+
     def __init__(
-        self, 
-        dim: int, 
-        num_heads: int = 4, 
-        window_size: list[int] | int = 3, 
-        shift_size: list[int] | int = 3, 
-        use_conv: bool = True, 
-        **kwargs
+        self,
+        dim: int,
+        num_heads: int = 4,
+        window_size: list[int] | int = 3,
+        shift_size: list[int] | int = 3,
+        use_conv: bool = True,
+        **kwargs,
     ):
         super().__init__()
 
@@ -34,26 +35,18 @@ class SwinBlock(nn.Module):
             shift_size = [shift_size, shift_size]
 
         self.swtb1 = SwinTransformerBlock(
-            dim=dim, 
-            num_heads=num_heads,
-            window_size=window_size,
-            shift_size=[0, 0],
-            **kwargs
+            dim=dim, num_heads=num_heads, window_size=window_size, shift_size=[0, 0], **kwargs
         )
 
         self.swtb2 = SwinTransformerBlock(
-            dim=dim, 
-            num_heads=num_heads,
-            window_size=window_size,
-            shift_size=shift_size,
-            **kwargs
+            dim=dim, num_heads=num_heads, window_size=window_size, shift_size=shift_size, **kwargs
         )
 
         if use_conv:
             self.conv = nn.Sequential(
                 nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim),  # Depthwise
                 nn.GELU(),
-                nn.Conv2d(dim, dim, kernel_size=1)  # Pointwise
+                nn.Conv2d(dim, dim, kernel_size=1),  # Pointwise
             )
 
         self.use_conv = use_conv

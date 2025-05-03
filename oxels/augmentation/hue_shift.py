@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 
+
 class HueShift:
     """
     Applies a random linear gradient (phase shift) to the hue channel of an RGB image.
@@ -46,7 +47,7 @@ class HueShift:
         hsv = cv2.cvtColor((image * 255).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float32)
         h, s, v = cv2.split(hsv)
         h_norm = h / 179.0
-        
+
         H, W = h.shape
         intercept = np.random.uniform(-self.max_shift, self.max_shift)
         slope_x = np.random.uniform(-self.max_shift, self.max_shift)

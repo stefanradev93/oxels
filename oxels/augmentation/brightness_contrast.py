@@ -23,11 +23,10 @@ class BrightnessContrast:
     """
 
     def __init__(
-        self, 
-        contrast_range: Sequence[float, float] = (0.5, 1.5), 
-        brightness_range: Sequence[float, float] = (-0.2, 0.2)
+        self,
+        contrast_range: Sequence[float, float] = (0.5, 1.5),
+        brightness_range: Sequence[float, float] = (-0.2, 0.2),
     ):
-        
         self.contrast_range = contrast_range
         self.brightness_range = brightness_range
 

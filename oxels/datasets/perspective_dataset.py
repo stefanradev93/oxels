@@ -19,7 +19,7 @@ class PerspectiveDataset(OxelDataset):
         Parameters
         ----------
         file : filename
-        
+
         Returns
         -------
         view1   : ndarray, shape (H, W, 3), dtype=float
@@ -36,7 +36,7 @@ class PerspectiveDataset(OxelDataset):
         mask2   : ndarray, shape (H, W), dtype=bool
             Which pixels of view2 should be used for loss computation
         """
-        
+
         img_bgr = cv2.imread(file, cv2.IMREAD_COLOR)
         img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
         img_rgb = img_rgb.astype(np.float32) / 255.0

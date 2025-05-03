@@ -36,4 +36,3 @@ class Scharr:
         grad_y = cv2.Scharr(im, cv2.CV_32F, 0, 1)
         grad_x = cv2.Scharr(im, cv2.CV_32F, 1, 0)
         return np.sqrt(grad_x**2 + grad_y**2)
-

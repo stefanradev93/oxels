@@ -40,58 +40,58 @@ class SwinUNet(nn.Module):
     """
 
     ...
+
     def __init__(
         self,
-        channels: int, 
-        patch_embed_dim: int = 32, 
-        patch_size: int = 4, 
+        channels: int,
+        patch_embed_dim: int = 32,
+        patch_size: int = 4,
         num_stages: int = 3,
         oxel_dim: int = 16,
         window_size: int = 3,
         shift_size: int = 3,
         num_heads: int = 4,
-        use_conv: bool = True, 
+        use_conv: bool = True,
         add_identity: bool = True,
-        **kwargs
+        **kwargs,
     ):
-
         super().__init__()
 
         self.patch_embed = PatchEmbedding(channels, patch_embed_dim, patch_size)
 
         self.encoder = SwinEncoder(
-            patch_embed_dim=patch_embed_dim, 
+            patch_embed_dim=patch_embed_dim,
             shift_size=shift_size,
             window_size=window_size,
             num_heads=num_heads,
             num_stages=num_stages,
-            use_conv=use_conv, 
-            **kwargs
+            use_conv=use_conv,
+            **kwargs,
         )
 
         self.bottleneck = SwinBlock(
-            dim=patch_embed_dim * (2 ** num_stages),
+            dim=patch_embed_dim * (2**num_stages),
             shift_size=shift_size,
             window_size=window_size,
             num_heads=num_heads,
             use_conv=use_conv,
-            **kwargs
+            **kwargs,
         )
 
         self.decoder = SwinDecoder(
-            patch_embed_dim=patch_embed_dim, 
+            patch_embed_dim=patch_embed_dim,
             shift_size=shift_size,
             window_size=window_size,
             num_heads=num_heads,
             num_stages=num_stages,
             use_conv=use_conv,
-            **kwargs
+            **kwargs,
         )
 
         self.add_identity = add_identity
-        
+
         if add_identity:
-            final_patch_dim = patch_embed_dim*2
+            final_patch_dim = patch_embed_dim * 2
         else:
             final_patch_dim = patch_embed_dim
 
@@ -124,7 +124,7 @@ class SwinUNet(nn.Module):
             of output channels defined in the final convolutional layer (e.g., number of segmentation classes).
         """
         emb = self.patch_embed(x)
-        
+
         enc, skip_features = self.encoder(emb)
 
         enc = self.bottleneck(enc)

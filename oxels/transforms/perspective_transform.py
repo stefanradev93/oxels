@@ -31,14 +31,7 @@ class PerspectiveTransform:
         Precomputed y-coordinate meshgrid of shape (h, w).
     """
 
-    def __init__(
-        self,
-        w: int,
-        h: int,
-        frac_keep: float = 0.125,
-        max_shift: int = None,
-        std_matrix_noise: float = 0.1
-    ):
+    def __init__(self, w: int, h: int, frac_keep: float = 0.125, max_shift: int = None, std_matrix_noise: float = 0.1):
         self.w = int(w)
         self.h = int(h)
         self.frac_keep = frac_keep
@@ -51,7 +44,9 @@ class PerspectiveTransform:
 
         self.X, self.Y = np.meshgrid(np.arange(w), np.arange(h))
 
-    def get_index_permutation(self, H: np.ndarray, sub_x: int, sub_y: int, mask: np.ndarray = None) -> tuple[np.ndarray, np.ndarray]:
+    def get_index_permutation(
+        self, H: np.ndarray, sub_x: int, sub_y: int, mask: np.ndarray = None
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Computes the pixel index permutation under a perspective transformation.
 
@@ -74,26 +69,26 @@ class PerspectiveTransform:
             Boolean array of shape (H*W,) indicating valid matches.
         """
         H_inv = np.linalg.inv(H)
-        l = 1 / (H_inv[2, 0] * self.X + H_inv[2, 1] * self.Y + H_inv[2, 2])
-        X_ = (-H_inv[0, 0] * H[0, 2] - H_inv[0, 1] * H[1, 2] + H_inv[0, 0] * self.X + H_inv[0, 1] * self.Y) * l
-        Y_ = (-H_inv[1, 0] * H[0, 2] - H_inv[1, 1] * H[1, 2] + H_inv[1, 0] * self.X + H_inv[1, 1] * self.Y) * l
+        ll = 1 / (H_inv[2, 0] * self.X + H_inv[2, 1] * self.Y + H_inv[2, 2])
+        X_ = (-H_inv[0, 0] * H[0, 2] - H_inv[0, 1] * H[1, 2] + H_inv[0, 0] * self.X + H_inv[0, 1] * self.Y) * ll
+        Y_ = (-H_inv[1, 0] * H[0, 2] - H_inv[1, 1] * H[1, 2] + H_inv[1, 0] * self.X + H_inv[1, 1] * self.Y) * ll
 
         ind = np.round(np.stack([Y_.ravel(), X_.ravel()], axis=1)).astype(int)
-        match = ((ind[:, 1] > sub_x) & (ind[:, 1] < self.w + sub_x) &
-                 (ind[:, 0] > sub_y) & (ind[:, 0] < self.h + sub_y)).reshape((-1, 1))
-        match &= (np.random.random(match.shape) < self.frac_keep)
+        match = (
+            (ind[:, 1] > sub_x) & (ind[:, 1] < self.w + sub_x) & (ind[:, 0] > sub_y) & (ind[:, 0] < self.h + sub_y)
+        ).reshape((-1, 1))
+        match &= np.random.random(match.shape) < self.frac_keep
 
-        random_ind = np.stack([
-            np.random.randint(0, self.h, self.w * self.h),
-            np.random.randint(0, self.w, self.w * self.h)
-        ], axis=1)
+        random_ind = np.stack(
+            [np.random.randint(0, self.h, self.w * self.h), np.random.randint(0, self.w, self.w * self.h)], axis=1
+        )
 
         ind = match * (ind - [[sub_y, sub_x]]) + (~match) * random_ind
 
         if mask is not None:
             mask_flat = mask.ravel()
             valid = mask_flat[ind[:, 0] * self.w + ind[:, 1]].reshape(match.shape)
-            match &= (valid == 0)
+            match &= valid == 0
             ind = match * ind + (~match) * random_ind
 
         ind_flat = ind[:, 0] * self.w + ind[:, 1]
@@ -127,8 +122,7 @@ class PerspectiveTransform:
         if im.shape[0] <= self.h + 2 * self.max_shift or im.shape[1] <= self.w + 2 * self.max_shift:
             im = cv2.resize(
                 im,
-                (max(im.shape[1], self.w + 2 * self.max_shift + 1),
-                 max(im.shape[0], self.h + 2 * self.max_shift + 1))
+                (max(im.shape[1], self.w + 2 * self.max_shift + 1), max(im.shape[0], self.h + 2 * self.max_shift + 1)),
             )
 
         x = np.random.randint(self.max_shift + self.w // 2, im.shape[1] - self.max_shift - self.w // 2 + 1)
@@ -149,8 +143,7 @@ class PerspectiveTransform:
         A[:2, 2] = -A[:2, :2].dot([x, y]) + [self.w // 2, self.h // 2]
 
         view1 = cv2.warpPerspective(im, A, (self.w, self.h), flags=cv2.INTER_AREA)
-        view2 = im[y + dy - self.h // 2 : y + dy + self.h // 2,
-                   x + dx - self.w // 2 : x + dx + self.w // 2]
+        view2 = im[y + dy - self.h // 2 : y + dy + self.h // 2, x + dx - self.w // 2 : x + dx + self.w // 2]
 
         valid = np.ones(im.shape[:2], dtype=np.uint8)
         mask1 = cv2.warpPerspective(valid, A, (self.w, self.h), flags=cv2.INTER_AREA).ravel() == 1

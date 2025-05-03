@@ -53,6 +53,6 @@ class KernelConvolution:
         # Normalize back to original range
         im -= im.min()
         im /= np.abs(im.max()) + 1e-6
-        im *= (immax - immin)
+        im *= immax - immin
         im += immin
         return im

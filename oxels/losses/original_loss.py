@@ -1,5 +1,6 @@
 import torch
 
+
 def original_loss_func(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tensor:
     """
     Computes a custom contrastive-style loss between two spatially transformed views
@@ -30,7 +31,7 @@ def original_loss_func(oview1, oview2, indices, flags, mask1, mask2) -> torch.Te
     flags = flags.float()
     mask1 = mask1.float()
     mask2 = mask2.float()
-    
+
     B, C, H, W = oview1.shape
     losses = []
 
@@ -39,8 +40,8 @@ def original_loss_func(oview1, oview2, indices, flags, mask1, mask2) -> torch.Te
         _mask = mask1[b] * mask2[b][idx]
 
         diff = oview1[b].reshape((C, H * W)) - oview2[b].reshape((C, H * W))[:, idx]
-         # max difference across channels
-        max_diff = 0.5 * diff.abs().max(dim=0)[0] 
+        # max difference across channels
+        max_diff = 0.5 * diff.abs().max(dim=0)[0]
 
         loss = 0.25 * (1.0 - flags[b].mean()) + (max_diff * (2 * flags[b] - 1) + max_diff**2)
         losses.append((loss * _mask).mean() / _mask.mean())
