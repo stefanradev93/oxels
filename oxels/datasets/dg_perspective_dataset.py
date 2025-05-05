@@ -114,10 +114,11 @@ class DGPerspectiveDataset(Dataset):
         # get the full domains
         domains = [dataset.domain(d) for d in domains]
 
-        # get the seeded random splits for the given domain
-        split = list(self.splits.keys()).index(self.split)
-        generator = torch.Generator().manual_seed(seed)
-        domains = [random_split(d, list(self.splits.values()), generator=generator)[split] for d in domains]
+        if self.domain_split != "ood":
+            # get the seeded random splits for the given domain
+            split = list(self.splits.keys()).index(self.split)
+            generator = torch.Generator().manual_seed(seed)
+            domains = [random_split(d, list(self.splits.values()), generator=generator)[split] for d in domains]
 
         return domains
 
