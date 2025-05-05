@@ -25,7 +25,9 @@ class DGPerspectiveDataset(Dataset):
         self.transform = PerspectiveTransform(w=w, h=h, frac_keep=frac_keep)
 
     def __getitem__(self, item):
-        rgb, label = self.dataset.__getitem__(item)
+        with torch.device("cpu"):
+            rgb, label, domain = self.dataset.__getitem__(item)
+        rgb = rgb.numpy()
         return self.transform.get_views_and_permutation(rgb)
 
     def _get_raw_dataset(self, dataset: str):
