@@ -31,7 +31,7 @@ class DGPerspectiveDataset(Dataset):
     def _get_raw_dataset(self, dataset: str):
         # TODO: the commented-out datasets are not image datasets (except ProDAS)
         # do we want to remove those?
-        match dataset:
+        match dataset.lower():
             # case "BikeSharingSeason":
             #     from dg import BikeSharingSeason
             #
@@ -40,60 +40,60 @@ class DGPerspectiveDataset(Dataset):
             #     from dg import CaliforniaHousingDataset
             #
             #     return CaliforniaHousingDataset(self.path, download=True)
-            case "Camelyon17":
-                from dg import Camelyon17
+            case "camelyon17":
+                from .dg import Camelyon17
                 
                 return Camelyon17(self.path, download=True)
             # case "CensusIncomeEthnicity":
             #     from dg import CensusIncomeEthnicity
             #
             #     return CensusIncomeEthnicity(self.path, download=True)
-            case "ColoredMNIST":
-                from dg import ColoredMNIST
+            case "coloredmnist":
+                from .dg import ColoredMNIST
 
                 return ColoredMNIST(self.path, download=True)
-            case "FMowRegion":
-                from dg import FMoWRegion
+            case "fmowregion":
+                from .dg import FMoWRegion
 
                 return FMoWRegion(self.path, download=True)
-            case "FMoWYear":
-                from dg import FMoWYear
+            case "fmowyear":
+                from .dg import FMoWYear
 
                 return FMoWYear(self.path, download=True)
             # case "MLBook":
             #     from dg import MLBookDataset
             #
             #     return MLBookDataset(self.path, download=True)
-            case "OfficeHome":
-                from dg import OfficeHome
+            case "officehome":
+                from .dg import OfficeHome
 
                 return OfficeHome(self.path, download=True)
-            case "PACS":
-                from dg import PACS
+            case "pacs":
+                from .dg import PACS
 
                 return PACS(self.path, download=True)
             # case "ProDASCondSatisfied":
             #     from dg import ProDASCondSatisfied
             #
             #     return ProDASCondSatisfied(self.path, download=True)
-            case "RotatedMNIST":
-                from dg import RotatedMNIST
+            case "rotatedmnist":
+                from .dg import RotatedMNIST
 
                 return RotatedMNIST(self.path, download=True)
-            case "TerraIncognita":
-                from dg import TerraIncognita
+            case "terraincognita":
+                from .dg import TerraIncognita
 
                 return TerraIncognita(self.path, download=True)
-            case "VLCS":
-                from dg import VLCS
+            case "vlcs":
+                from .dg import VLCS
 
                 return VLCS(self.path, download=True)
-            case "PovertyMapUrbanicity":
-                from dg import PovertyMapUrbanicity
+            case "povertymapurbanicity":
+                from .dg import PovertyMapUrbanicity
 
                 return PovertyMapUrbanicity(self.path, download=True)
-            case "PovertyMapCountry":
-                from dg import PovertyMapCountry
+            case "povertymapcountry":
+                from .dg import PovertyMapCountry
 
                 return PovertyMapCountry(self.path, download=True)
             # case "Simpson":
