@@ -4,7 +4,7 @@ from typing import Optional
 import torch.nn as nn
 from torchvision.transforms.functional import center_crop
 
-from oxels.types import ActivationType, UNetBlockType as BlockType
+from oxels.typing import ActivationType, UNetBlockType as BlockType
 from oxels.utils import pad_to_even_height_and_width
 
 from ..helpers import ConvBlock

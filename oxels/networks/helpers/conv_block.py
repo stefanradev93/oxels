@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from typing import Optional
 
-from oxels.types import ActivationType
+from oxels.typing import ActivationType
 
 
 class ConvBlock(nn.Sequential):
