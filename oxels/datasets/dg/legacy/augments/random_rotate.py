@@ -1,4 +1,3 @@
-
 import torch
 
 from torchvision.transforms.functional import rotate

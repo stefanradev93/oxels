@@ -1,4 +1,3 @@
-
 import torch
 
 from torchvision.transforms import InterpolationMode
@@ -16,4 +15,3 @@ class Rotate:
         data[mask] = rotate(data[mask], self.angle, interpolation=InterpolationMode.BILINEAR, fill=[0])
 
         return data, labels, domains
-

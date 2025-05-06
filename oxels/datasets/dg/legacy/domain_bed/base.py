@@ -11,11 +11,11 @@ from torchvision.datasets.utils import download_url, extract_archive
 from typing import Sequence
 
 from PIL import Image, ImageFile
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class DomainBedImageFolder(Dataset):
-
     url: str
     dirname: str
     filename: str
@@ -26,7 +26,15 @@ class DomainBedImageFolder(Dataset):
     domain_map: dict[str]
     n_classes: int
 
-    def __init__(self, root: str, in_distribution: bool, id_domains: Sequence[str], ood_domains: Sequence[str], download: bool = True, normalize: bool = True):
+    def __init__(
+        self,
+        root: str,
+        in_distribution: bool,
+        id_domains: Sequence[str],
+        ood_domains: Sequence[str],
+        download: bool = True,
+        normalize: bool = True,
+    ):
         super().__init__()
 
         self.root = root
@@ -38,30 +46,33 @@ class DomainBedImageFolder(Dataset):
         self.id_domains = set(id_domains)
         self.ood_domains = set(ood_domains)
 
-        assert self.id_domains ^ self.ood_domains == self.all_domains, \
-            f"ID and OOD domains must be disjoint and cover all domains"
+        assert self.id_domains ^ self.ood_domains == self.all_domains, (
+            "ID and OOD domains must be disjoint and cover all domains"
+        )
 
-        self.augment_eval = transforms.Compose([
-            transforms.RandomResizedCrop([224, 224], scale=(0.7, 1.0), antialias=True),
-            transforms.ToTensor(),
-        ])
+        self.augment_eval = transforms.Compose(
+            [
+                transforms.RandomResizedCrop([224, 224], scale=(0.7, 1.0), antialias=True),
+                transforms.ToTensor(),
+            ]
+        )
         self.eval_mode = False
 
-        self.augment = transforms.Compose([
-            transforms.RandomResizedCrop([224, 224], scale=(0.7, 1.0), antialias=True),
-            transforms.RandomHorizontalFlip(),
-            transforms.ColorJitter(0.3, 0.3, 0.3, 0.3),
-            transforms.RandomGrayscale(),
-            transforms.ToTensor(),
-        ])
+        self.augment = transforms.Compose(
+            [
+                transforms.RandomResizedCrop([224, 224], scale=(0.7, 1.0), antialias=True),
+                transforms.RandomHorizontalFlip(),
+                transforms.ColorJitter(0.3, 0.3, 0.3, 0.3),
+                transforms.RandomGrayscale(),
+                transforms.ToTensor(),
+            ]
+        )
 
         if normalize:
             # use the default normalization from DomainBed
             # this is static between datasets, so take it with a grain of salt
             # usually it should be better to use BatchNorm
-            self.augment.transforms.append(
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            )
+            self.augment.transforms.append(transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
             self.augment_eval.transforms.append(
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             )
@@ -158,8 +169,9 @@ class DomainBedImageFolder(Dataset):
 
         # remove intermediate folder by moving all files up one level
         intermediate_folders = list(target.glob("*"))
-        assert len(intermediate_folders) == 1, f"Expected exactly one intermediate folder, " \
-                                               f"found {len(intermediate_folders)}"
+        assert len(intermediate_folders) == 1, (
+            f"Expected exactly one intermediate folder, found {len(intermediate_folders)}"
+        )
 
         # move all files up one level
         intermediate_folder = intermediate_folders[0]
@@ -171,7 +183,7 @@ class DomainBedImageFolder(Dataset):
         shutil.rmtree(str(intermediate_folder))
 
     def domain_indices(self, domain: int) -> Sequence[int]:
-        """ Return the indices pertaining to the subset of the dataset containing only the given domain. """
+        """Return the indices pertaining to the subset of the dataset containing only the given domain."""
         domains = self.id_domains if self.in_distribution else self.ood_domains
 
         if isinstance(domain, int):
@@ -180,13 +192,15 @@ class DomainBedImageFolder(Dataset):
 
             if not 0 <= domain < len(domains):
                 id_ood = "ID" if self.in_distribution else "OOD"
-                raise IndexError(f"Domain index {domain} out of range for {id_ood} dataset with {len(domains)} domains.")
+                raise IndexError(
+                    f"Domain index {domain} out of range for {id_ood} dataset with {len(domains)} domains."
+                )
 
         # compute indices from domain counts
-        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[:domain + 1])))
+        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[: domain + 1])))
 
         return indices
 
     def domain(self, domain: int) -> Dataset:
-        """ Return a subset of the dataset containing only the given domain. """
+        """Return a subset of the dataset containing only the given domain."""
         return Subset(self, self.domain_indices(domain))

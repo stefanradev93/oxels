@@ -1,6 +1,10 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 
 import torch.nn as nn
+
+from typing import Optional
+
+from oxels.types import ActivationType
 
 
 class ConvBlock(nn.Sequential):
@@ -10,12 +14,12 @@ class ConvBlock(nn.Sequential):
         *,
         in_features: int,
         out_features: int,
-        kernel_size=3,
-        stride=1,
-        activation: type(nn.Module) = nn.SiLU,
-        out_activation: type(nn.Module) = None,
+        kernel_size: int = 3,
+        stride: int = 1,
+        activation: ActivationType = nn.SiLU,
+        out_activation: Optional[ActivationType] = None,
         use_batchnorm: bool = True,
-        dropout: float | None = 0.05,
+        dropout: Optional[float] = 0.05,
     ):
         super().__init__()
         self.in_features = in_features
@@ -23,9 +27,7 @@ class ConvBlock(nn.Sequential):
 
         features = [in_features, *hidden_features]
         for in_features, out_features in zip(features[:-1], features[1:]):
-            self.append(
-                nn.Conv2d(in_features, out_features, kernel_size, stride, padding="same")
-            )
+            self.append(nn.Conv2d(in_features, out_features, kernel_size, stride, padding="same"))
             self.append(activation())
 
             if use_batchnorm:
@@ -34,9 +36,7 @@ class ConvBlock(nn.Sequential):
             if dropout is not None and dropout > 0.0:
                 self.append(nn.Dropout2d(dropout))
 
-        self.append(
-            nn.Conv2d(features[-1], self.out_features, kernel_size, stride, padding="same")
-        )
+        self.append(nn.Conv2d(features[-1], self.out_features, kernel_size, stride, padding="same"))
 
         if out_activation is not None:
             self.append(out_activation())

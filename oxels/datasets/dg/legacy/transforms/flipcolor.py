@@ -7,6 +7,7 @@ class FlipColor(DomainTransform):
     """
     Randomly flips (zeros) a color channel based on the label
     """
+
     def __init__(self, p: float = 1.0):
         self.p = p
 

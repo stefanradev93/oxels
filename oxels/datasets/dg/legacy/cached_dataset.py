@@ -1,4 +1,3 @@
-
 from torch.utils.data import Dataset, Subset
 
 
@@ -26,10 +25,10 @@ class DynamicCachedDataset(Dataset):
 
         if len(self.cache_queue) > self.size:
             # drop the first chunk_size items
-            drop = self.cache_queue[:self.chunk_size]
+            drop = self.cache_queue[: self.chunk_size]
             for item in drop:
                 self.cache.pop(item)
-            self.cache_queue = self.cache_queue[self.chunk_size:]
+            self.cache_queue = self.cache_queue[self.chunk_size :]
 
     def __len__(self):
         return len(self.dataset)

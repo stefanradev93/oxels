@@ -1,4 +1,3 @@
-
 import torch
 import torch.distributions as D
 
@@ -7,13 +6,11 @@ import numpy as np
 
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 
 from .domain_generalization import DomainGeneralizationDataset
 
 
 class SimpsonDataset(DomainGeneralizationDataset):
-
     all_domains = ["0", "1", "2", "3", "4"]
 
     dirname = "simpson"
@@ -59,31 +56,39 @@ class SimpsonDataset(DomainGeneralizationDataset):
         spacing = self.spacing
         noise = self.noise
 
-        means = torch.stack([
-            torch.linspace(0.0, spacing * n_domains, n_domains),
-            torch.linspace(spacing * n_domains, 0.0, n_domains),
-        ], dim=1)
+        means = torch.stack(
+            [
+                torch.linspace(0.0, spacing * n_domains, n_domains),
+                torch.linspace(spacing * n_domains, 0.0, n_domains),
+            ],
+            dim=1,
+        )
 
         stds = torch.Tensor([self.noise_ratio * noise, noise]).repeat(n_domains, 1)
 
         angles = torch.linspace(*self.rotation_range, n_domains)
         angles = torch.deg2rad(angles)
 
-        rotations = torch.stack([
-            torch.stack([torch.cos(angles), -torch.sin(angles)], dim=-1),
-            torch.stack([torch.sin(angles), torch.cos(angles)], dim=-1)
-        ], dim=-2)
+        rotations = torch.stack(
+            [
+                torch.stack([torch.cos(angles), -torch.sin(angles)], dim=-1),
+                torch.stack([torch.sin(angles), torch.cos(angles)], dim=-1),
+            ],
+            dim=-2,
+        )
 
         covariances = torch.matmul(torch.matmul(rotations, torch.diag_embed(stds)), rotations.transpose(-1, -2))
 
         distributions = [D.MultivariateNormal(means[i], covariances[i]) for i in range(n_domains)]
         samples = [d.sample(torch.Size((n_samples,))) for d in distributions]
 
-        df = pd.DataFrame({
-            "x": torch.cat(samples).numpy()[:, 0],
-            "y": torch.cat(samples).numpy()[:, 1],
-            "domain": torch.arange(n_domains).repeat_interleave(n_samples).numpy()
-        })
+        df = pd.DataFrame(
+            {
+                "x": torch.cat(samples).numpy()[:, 0],
+                "y": torch.cat(samples).numpy()[:, 1],
+                "domain": torch.arange(n_domains).repeat_interleave(n_samples).numpy(),
+            }
+        )
 
         # for domain in range(n_domains):
         #     ddf = df[df["domain"] == domain]
@@ -94,4 +99,3 @@ class SimpsonDataset(DomainGeneralizationDataset):
         path = self.root / self.dirname / self.filename
         path.parent.mkdir(exist_ok=True, parents=True)
         df.to_csv(path, index=False)
-

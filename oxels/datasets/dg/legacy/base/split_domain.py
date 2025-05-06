@@ -32,16 +32,17 @@ class SplitDomainDataset(MultiDomainDataset):
         >>> # split dataset into 2 domains with random proportions
         >>> dataset = SplitDomainDataset(data, labels, transforms, domains=2, in_distribution=True, splits="random")
     """
+
     def __init__(
-            self,
-            data: torch.Tensor,
-            labels: torch.Tensor,
-            transforms: list[DomainTransform],
-            splits: str | list[int | float],
-            domains: int,
-            in_distribution: bool,
-            shuffle: bool = True,
-            normalize: Choice("none", "domain", "all") = "none",
+        self,
+        data: torch.Tensor,
+        labels: torch.Tensor,
+        transforms: list[DomainTransform],
+        splits: str | list[int | float],
+        domains: int,
+        in_distribution: bool,
+        shuffle: bool = True,
+        normalize: Choice("none", "domain", "all") = "none",
     ):
         """
         :param data: Tensor containing all data
@@ -68,8 +69,8 @@ class SplitDomainDataset(MultiDomainDataset):
 
         # check validity of splits list
         assert len(transforms) == len(splits), f"Split Mismatch: {len(transforms)}, {len(splits)}"
-        assert all([isinstance(s, type(splits[0])) for s in splits]), f"Cannot pass mixed-type splits."
-        assert isinstance(splits[0], (int, float)), f"Invalid type for splits."
+        assert all([isinstance(s, type(splits[0])) for s in splits]), "Cannot pass mixed-type splits."
+        assert isinstance(splits[0], (int, float)), "Invalid type for splits."
 
         # convert ratios to lengths
         if isinstance(splits[0], float):
@@ -94,5 +95,5 @@ class SplitDomainDataset(MultiDomainDataset):
             transforms=transforms,
             domains=domains,
             in_distribution=in_distribution,
-            normalize=normalize
+            normalize=normalize,
         )

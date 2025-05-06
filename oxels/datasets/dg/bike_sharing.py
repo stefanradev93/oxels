@@ -1,4 +1,3 @@
-
 import torch
 import numpy as np
 import pandas as pd
@@ -10,7 +9,6 @@ from .domain_generalization import DomainGeneralizationDataset
 
 
 class BikeSharingDataset(DomainGeneralizationDataset):
-
     url = "https://archive.ics.uci.edu/static/public/275/bike+sharing+dataset.zip"
     dirname = "bike-sharing"
     filename = "hour.csv"

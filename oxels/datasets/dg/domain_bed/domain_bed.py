@@ -17,10 +17,12 @@ class DomainBedDataset(DomainBedDownloadMixin, DomainGeneralizationDataset):
     def __init__(self, root: str | Path, download: bool = True):
         super().__init__(root, download=download)
 
-        transform = transforms.Compose([
-            transforms.Resize([224, 224]),
-            transforms.ToTensor(),
-        ])
+        transform = transforms.Compose(
+            [
+                transforms.Resize([224, 224]),
+                transforms.ToTensor(),
+            ]
+        )
 
         # transform = transforms.Compose([
         #     transforms.RandomResizedCrop([224, 224], scale=(0.7, 1.0), antialias=True),
@@ -33,9 +35,7 @@ class DomainBedDataset(DomainBedDownloadMixin, DomainGeneralizationDataset):
         target_transform = transforms.Lambda(lambda x: F.one_hot(torch.tensor(x), num_classes=self.n_classes))
 
         self.image_folder = ImageFolder(
-            root=str(self.root / self.name),
-            transform=transform,
-            target_transform=target_transform
+            root=str(self.root / self.name), transform=transform, target_transform=target_transform
         )
 
     def domain(self, domain: str) -> ImageFolder:
@@ -43,7 +43,7 @@ class DomainBedDataset(DomainBedDownloadMixin, DomainGeneralizationDataset):
         return ImageFolder(
             root=str(self.root / self.name / domain),
             transform=self.image_folder.transform,
-            target_transform=self.image_folder.target_transform
+            target_transform=self.image_folder.target_transform,
         )
 
     def domain_indices(self, domain: str) -> list[int]:
@@ -51,7 +51,7 @@ class DomainBedDataset(DomainBedDownloadMixin, DomainGeneralizationDataset):
         domain_lengths = [len(self.domain(domain)) for domain in self.all_domains]
 
         start = sum(domain_lengths[:domain_idx])
-        stop = sum(domain_lengths[:domain_idx + 1])
+        stop = sum(domain_lengths[: domain_idx + 1])
 
         return list(range(start, stop))
 

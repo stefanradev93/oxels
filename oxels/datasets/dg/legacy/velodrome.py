@@ -1,7 +1,5 @@
-
 from torch.utils.data import Dataset
 
-from torchvision.datasets.utils import download_url, extract_archive
 
 import gdown
 
@@ -12,7 +10,6 @@ from typing import Sequence
 
 
 class VelodromeDataset(Dataset):
-
     all_domains = {"D", "E", "G", "P"}
     domain_map = {
         "D": "Docetaxel",
@@ -21,7 +18,14 @@ class VelodromeDataset(Dataset):
         "P": "Paclitaxel",
     }
 
-    def __init__(self, root: str, in_distribution: bool, id_domains: Sequence[str], ood_domains: Sequence[str], download: bool = True):
+    def __init__(
+        self,
+        root: str,
+        in_distribution: bool,
+        id_domains: Sequence[str],
+        ood_domains: Sequence[str],
+        download: bool = True,
+    ):
         self.root = root
         self.in_distribution = in_distribution
 
@@ -31,8 +35,9 @@ class VelodromeDataset(Dataset):
         self.id_domains = set(id_domains)
         self.ood_domains = set(ood_domains)
 
-        assert self.id_domains ^ self.ood_domains == self.all_domains, \
-            f"ID and OOD domains must be disjoint and cover all domains"
+        assert self.id_domains ^ self.ood_domains == self.all_domains, (
+            "ID and OOD domains must be disjoint and cover all domains"
+        )
 
         self.data = pd.DataFrame()
 
@@ -56,4 +61,3 @@ class VelodromeDataset(Dataset):
             use_cookies=False,
             quiet=False,
         )
-

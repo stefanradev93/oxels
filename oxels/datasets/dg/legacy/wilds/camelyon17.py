@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from torch.utils.data import ConcatDataset, Dataset, Subset
+from torch.utils.data import Dataset, Subset
 
 import torchvision.transforms as transforms
 
@@ -10,10 +10,17 @@ from typing import Sequence
 
 
 class Camelyon17Dataset(Dataset):
-
     n_classes = 2
 
-    def __init__(self, root: str, in_distribution: bool, id_domains: Sequence[int] = (0, 3, 4), ood_domains: Sequence[int] = (1, 2), download: bool = True, normalize: bool = True):
+    def __init__(
+        self,
+        root: str,
+        in_distribution: bool,
+        id_domains: Sequence[int] = (0, 3, 4),
+        ood_domains: Sequence[int] = (1, 2),
+        download: bool = True,
+        normalize: bool = True,
+    ):
         super().__init__()
 
         self.wilds = wilds.get_dataset("camelyon17", root_dir=root, download=download)
@@ -22,7 +29,9 @@ class Camelyon17Dataset(Dataset):
         self.id_domains = set(id_domains)
         self.ood_domains = set(ood_domains)
 
-        assert self.id_domains ^ self.ood_domains == set(range(5)), f"ID and OOD domains must be disjoint and cover all domains"
+        assert self.id_domains ^ self.ood_domains == set(range(5)), (
+            "ID and OOD domains must be disjoint and cover all domains"
+        )
 
         if in_distribution:
             mask = torch.isin(self.wilds.metadata_array[:, 0], torch.as_tensor(list(self.id_domains)))
@@ -36,10 +45,12 @@ class Camelyon17Dataset(Dataset):
         domains = self.wilds.dataset.metadata_array[mask, 0].long()
         self._domain_counts = torch.bincount(domains)
 
-        self.augment = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-        ])
+        self.augment = transforms.Compose(
+            [
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+            ]
+        )
 
     def domain_indices(self, domain: int) -> Sequence[int]:
         domains = self.id_domains if self.in_distribution else self.ood_domains
@@ -50,10 +61,12 @@ class Camelyon17Dataset(Dataset):
 
             if not 0 <= domain < len(domains):
                 id_ood = "ID" if self.in_distribution else "OOD"
-                raise IndexError(f"Domain index {domain} out of range for {id_ood} dataset with {len(domains)} domains.")
+                raise IndexError(
+                    f"Domain index {domain} out of range for {id_ood} dataset with {len(domains)} domains."
+                )
 
         # compute indices from domain counts
-        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[:domain + 1])))
+        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[: domain + 1])))
 
         return indices
 

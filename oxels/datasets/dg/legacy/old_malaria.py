@@ -13,7 +13,7 @@ from .augments import RandomRotate
 
 def get_patient_ids(path, threshold):
     files = [f for f in glob.glob(path + "**/*.png", recursive=True)]
-    files = [f.split('/')[-1].split('.')[0].split('_')[0].split('thin')[0].split('Thin')[0] for f in files]
+    files = [f.split("/")[-1].split(".")[0].split("_")[0].split("thin")[0].split("Thin")[0] for f in files]
 
     unique_file_names = list(set(files))
 
@@ -53,9 +53,9 @@ class MalariaData(data_utils.Dataset):
 
         cell_tensor_list = []
         for cell in cells_belonging_to_domain:
-            with open(cell, 'rb') as f:
+            with open(cell, "rb") as f:
                 with Image.open(f) as img:
-                    img = img.convert('RGB')
+                    img = img.convert("RGB")
             cell_tensor_list.append(self.to_tensor(self.resize(img)))
 
         # Concatenate
@@ -67,10 +67,10 @@ class MalariaData(data_utils.Dataset):
         domain_per_domain_list = []
 
         for i, domain in enumerate(self.domain_list):
-            cells_unifected = self.get_cells_from_imgs('Uninfected/', domain)
+            cells_unifected = self.get_cells_from_imgs("Uninfected/", domain)
             label_unifected = torch.zeros(cells_unifected.size()[0]) + 0
 
-            cells_parasitized = self.get_cells_from_imgs('Parasitized/', domain)
+            cells_parasitized = self.get_cells_from_imgs("Parasitized/", domain)
             label_parasitized = torch.zeros(cells_parasitized.size()[0]) + 1
 
             cells_per_domain_list.append(torch.cat((cells_unifected, cells_parasitized), 0))
@@ -108,9 +108,9 @@ class MalariaData(data_utils.Dataset):
 
 
 def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
-    malaria_directory = '/home/tarkus/Desktop/WILDS/prodas_exp/data_viz/'
+    malaria_directory = "/home/tarkus/Desktop/WILDS/prodas_exp/data_viz/"
 
-    kwargs = {'num_workers': 1, 'pin_memory': False}
+    kwargs = {"num_workers": 1, "pin_memory": False}
 
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -118,7 +118,7 @@ def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
     np.random.seed(seed)  # Numpy module.
     torch.manual_seed(seed)
 
-    patient_ids = get_patient_ids(malaria_directory + 'malaria/cell_images/', 400)
+    patient_ids = get_patient_ids(malaria_directory + "malaria/cell_images/", 400)
 
     print(patient_ids)
     train_patient_ids = patient_ids[:]
@@ -126,8 +126,9 @@ def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
     train_patient_ids.remove(test_patient_ids)
     print(f"Test {test_patient_ids}")
 
-    train_dataset = MalariaData(malaria_directory + 'malaria/cell_images/', domain_list=train_patient_ids,
-                                transform=True)
+    train_dataset = MalariaData(
+        malaria_directory + "malaria/cell_images/", domain_list=train_patient_ids, transform=True
+    )
     train_size = int(0.80 * len(train_dataset))
     test_size = len(train_dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, test_size])
@@ -136,19 +137,22 @@ def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
     val_loader = data_utils.DataLoader(val_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 
     test_loader = data_utils.DataLoader(
-        MalariaData(malaria_directory + 'malaria/cell_images/', domain_list=[test_patient_ids]),
+        MalariaData(malaria_directory + "malaria/cell_images/", domain_list=[test_patient_ids]),
         batch_size=batch_size,
-        shuffle=False)
+        shuffle=False,
+    )
 
-    aug_transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0),
-        # transforms.RandomApply(torch.nn.ModuleList([transforms.RandomResizedCrop(64)]), p=0.2)
-    ])
+    aug_transform = transforms.Compose(
+        [
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0),
+            # transforms.RandomApply(torch.nn.ModuleList([transforms.RandomResizedCrop(64)]), p=0.2)
+        ]
+    )
 
     if transform:
-        print('Transform activated ')
+        print("Transform activated ")
         xs, ys, es = [], [], []
         for x, y, e in train_loader:
             xs.append(x)
@@ -158,7 +162,7 @@ def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
         xs = torch.cat(xs)
         ys = torch.cat(ys)
         es = torch.cat(es)
-        '''
+        """
         ys = torch.cat(ys)
         mask_1 = (ys.argmax(1)==1).view(-1)
         mask_0 = (ys.argmax(1)==0).view(-1)
@@ -174,12 +178,12 @@ def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
         xs = torch.cat((xs_1,xs_0),0)
         ys = torch.cat((ys_1,ys_0),0)
         es = torch.cat((es_1,es_0),0)
-        '''
-        '''
+        """
+        """
         xs = torch.cat(xs)[:50]
         ys = torch.cat(ys)[:50]
         es = torch.cat(es)[:50]
-        '''
+        """
         workers = 2
         #####
         weights_0 = ys.sum(0)[0].item()
@@ -191,12 +195,13 @@ def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
 
         # sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, batch_size)
         # train_loader_aug= DataLoader(CustomTensorDataset(tensors=(xs, ys, es), transform=aug_transform), batch_size=batch_size, shuffle=True, num_workers=workers)
-        train_loader_aug = DataLoader(TensorDataset(xs, ys, es), batch_size=batch_size, shuffle=True,
-                                      num_workers=workers)
+        train_loader_aug = DataLoader(
+            TensorDataset(xs, ys, es), batch_size=batch_size, shuffle=True, num_workers=workers
+        )
         # train_loader_aug= DataLoader(CustomTensorDataset(tensors=(xs, ys, es), transform=aug_transform), batch_size=batch_size, sampler=sampler,  num_workers=workers)
 
     else:
-        print('no aug used')
+        print("no aug used")
         train_loader_aug = train_loader
 
     return train_loader, train_loader, val_loader, val_loader, test_loader
@@ -204,7 +209,7 @@ def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
     # return train_loader_aug, train_loader, val_loader , val_loader, test_loader
 
 
-'''
+"""
     xs = []
 
     ys = []
@@ -275,4 +280,4 @@ def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
 
 
     return dataloader, dataloader, dataloader_iid_val, dataloader_iid_test, dataloader_ood
-'''
+"""

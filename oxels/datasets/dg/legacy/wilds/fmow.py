@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from torch.utils.data import ConcatDataset, Dataset, Subset
+from torch.utils.data import Dataset, Subset
 
 import torchvision.transforms as transforms
 
@@ -13,10 +13,17 @@ from typing import Sequence
 
 
 class FMoWRegionDataset(Dataset):
-
     num_classes = ...
 
-    def __init__(self, root: str, in_distribution: bool, id_domains: Sequence[int], ood_domains: Sequence[int], download: bool = True, normalize: bool = True):
+    def __init__(
+        self,
+        root: str,
+        in_distribution: bool,
+        id_domains: Sequence[int],
+        ood_domains: Sequence[int],
+        download: bool = True,
+        normalize: bool = True,
+    ):
         super().__init__()
 
         self.wilds = wilds.get_dataset("fmow", root_dir=root, download=download)
@@ -26,7 +33,9 @@ class FMoWRegionDataset(Dataset):
         self.ood_domains = set(ood_domains)
 
         expected_domains = set(range(6))
-        assert self.id_domains ^ self.ood_domains == expected_domains, f"ID and OOD domains must be disjoint and cover all domains. Expected {expected_domains} but got {self.id_domains} and {self.ood_domains}"
+        assert self.id_domains ^ self.ood_domains == expected_domains, (
+            f"ID and OOD domains must be disjoint and cover all domains. Expected {expected_domains} but got {self.id_domains} and {self.ood_domains}"
+        )
 
         if in_distribution:
             mask = torch.isin(self.wilds.metadata_array[:, 0], torch.as_tensor(list(self.id_domains)))
@@ -40,9 +49,11 @@ class FMoWRegionDataset(Dataset):
         domains = self.wilds.dataset.metadata_array[mask, 0].long()
         self._domain_counts = torch.bincount(domains)
 
-        self.augment = transforms.Compose([
-            transforms.ToTensor(),
-        ])
+        self.augment = transforms.Compose(
+            [
+                transforms.ToTensor(),
+            ]
+        )
 
     def __getitem__(self, item):
         image, label, meta_data = self.wilds[item]
@@ -75,10 +86,11 @@ class FMoWRegionDataset(Dataset):
             if not 0 <= domain < len(domains):
                 id_ood = "ID" if self.in_distribution else "OOD"
                 raise IndexError(
-                    f"Domain index {domain} out of range for {id_ood} dataset with {len(domains)} domains.")
+                    f"Domain index {domain} out of range for {id_ood} dataset with {len(domains)} domains."
+                )
 
         # compute indices from domain counts
-        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[:domain + 1])))
+        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[: domain + 1])))
 
         return indices
 
@@ -87,10 +99,17 @@ class FMoWRegionDataset(Dataset):
 
 
 class FMoWYearDataset(Dataset):
-
     num_classes = ...
 
-    def __init__(self, root: str, in_distribution: bool, id_domains: Sequence[int], ood_domains: Sequence[int], download: bool = True, normalize: bool = True):
+    def __init__(
+        self,
+        root: str,
+        in_distribution: bool,
+        id_domains: Sequence[int],
+        ood_domains: Sequence[int],
+        download: bool = True,
+        normalize: bool = True,
+    ):
         super().__init__()
 
         self.wilds = wilds.get_dataset("fmow", root_dir=root, download=download)
@@ -100,7 +119,9 @@ class FMoWYearDataset(Dataset):
         self.ood_domains = set(ood_domains)
 
         expected_domains = set(range(16))
-        assert self.id_domains ^ self.ood_domains == expected_domains, f"ID and OOD domains must be disjoint and cover all domains. Expected {expected_domains} but got {self.id_domains} and {self.ood_domains}"
+        assert self.id_domains ^ self.ood_domains == expected_domains, (
+            f"ID and OOD domains must be disjoint and cover all domains. Expected {expected_domains} but got {self.id_domains} and {self.ood_domains}"
+        )
 
         if in_distribution:
             mask = torch.isin(self.wilds.metadata_array[:, 1], torch.as_tensor(list(self.id_domains)))
@@ -114,9 +135,11 @@ class FMoWYearDataset(Dataset):
         domains = self.wilds.dataset.metadata_array[mask, 0].long()
         self._domain_counts = torch.bincount(domains)
 
-        self.augment = transforms.Compose([
-            transforms.ToTensor(),
-        ])
+        self.augment = transforms.Compose(
+            [
+                transforms.ToTensor(),
+            ]
+        )
 
     def __getitem__(self, item):
         image, label, meta_data = self.wilds[item]
@@ -149,10 +172,11 @@ class FMoWYearDataset(Dataset):
             if not 0 <= domain < len(domains):
                 id_ood = "ID" if self.in_distribution else "OOD"
                 raise IndexError(
-                    f"Domain index {domain} out of range for {id_ood} dataset with {len(domains)} domains.")
+                    f"Domain index {domain} out of range for {id_ood} dataset with {len(domains)} domains."
+                )
 
         # compute indices from domain counts
-        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[:domain + 1])))
+        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[: domain + 1])))
 
         return indices
 

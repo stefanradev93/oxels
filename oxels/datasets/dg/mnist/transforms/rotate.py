@@ -1,4 +1,3 @@
-
 from torchvision.transforms.functional import rotate
 
 from .domain_transform import DomainTransform

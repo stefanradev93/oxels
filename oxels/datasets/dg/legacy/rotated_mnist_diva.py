@@ -4,10 +4,8 @@ import os
 import numpy as np
 import torch
 import torch.utils.data as data_utils
-from torch.utils.data import Dataset, DataLoader, TensorDataset
+from torch.utils.data import TensorDataset
 from torchvision import datasets, transforms
-
-from torchvision.utils import save_image
 
 
 class MnistRotated(data_utils.Dataset):
@@ -80,29 +78,19 @@ class MnistRotated(data_utils.Dataset):
                 mnist_0_img[i] = to_tensor(to_pil(mnist_imgs[i]))
 
             for i in range(len(mnist_imgs)):
-                mnist_15_img[i] = to_tensor(
-                    transforms.functional.rotate(to_pil(mnist_imgs[i]), 15)
-                )
+                mnist_15_img[i] = to_tensor(transforms.functional.rotate(to_pil(mnist_imgs[i]), 15))
 
             for i in range(len(mnist_imgs)):
-                mnist_30_img[i] = to_tensor(
-                    transforms.functional.rotate(to_pil(mnist_imgs[i]), 30)
-                )
+                mnist_30_img[i] = to_tensor(transforms.functional.rotate(to_pil(mnist_imgs[i]), 30))
 
             for i in range(len(mnist_imgs)):
-                mnist_45_img[i] = to_tensor(
-                    transforms.functional.rotate(to_pil(mnist_imgs[i]), 45)
-                )
+                mnist_45_img[i] = to_tensor(transforms.functional.rotate(to_pil(mnist_imgs[i]), 45))
 
             for i in range(len(mnist_imgs)):
-                mnist_60_img[i] = to_tensor(
-                    transforms.functional.rotate(to_pil(mnist_imgs[i]), 60)
-                )
+                mnist_60_img[i] = to_tensor(transforms.functional.rotate(to_pil(mnist_imgs[i]), 60))
 
             for i in range(len(mnist_imgs)):
-                mnist_75_img[i] = to_tensor(
-                    transforms.functional.rotate(to_pil(mnist_imgs[i]), 75)
-                )
+                mnist_75_img[i] = to_tensor(transforms.functional.rotate(to_pil(mnist_imgs[i]), 75))
 
             # Choose subsets that should be included into the training
             training_list_img = []
@@ -188,9 +176,7 @@ class MnistRotated(data_utils.Dataset):
             mnist_imgs_rot = torch.zeros((self.num_supervised, 28, 28))
 
             for i in range(len(mnist_imgs)):
-                mnist_imgs_rot[i] = to_tensor(
-                    transforms.functional.rotate(to_pil(mnist_imgs[i]), rot_angle)
-                )
+                mnist_imgs_rot[i] = to_tensor(transforms.functional.rotate(to_pil(mnist_imgs[i]), rot_angle))
 
             # Create domain labels
             test_domain = torch.zeros(mnist_labels.size()).long()
@@ -306,22 +292,21 @@ def get_dataloader_rmnist_diva(seed=1, test_env=0, extend_dim=False):
     es = torch.cat(es)
 
     xs_mean, xs_std = xs.mean(0), xs.std(0)
-    xs = (xs-xs_mean) #/ xs_std
-
+    xs = xs - xs_mean  # / xs_std
 
     xs_test = torch.cat(xs_test)
     ys_test = torch.cat(ys_test)
     es_test = torch.cat(es_test)
-    xs_test = (xs_test-xs_mean) #/ xs_std
+    xs_test = xs_test - xs_mean  # / xs_std
 
     ## Unnecessary:
     idx = torch.randperm(xs_test.shape[0])
     xs_test, ys_test, es_test = xs_test[idx], ys_test[idx], es_test[idx]
 
     idx = torch.randperm(xs.shape[0])
-    xs, ys, es= xs[idx], ys[idx], es[idx]
+    xs, ys, es = xs[idx], ys[idx], es[idx]
 
-    n_train = int(0.8*xs.shape[0] )
+    n_train = int(0.8 * xs.shape[0])
 
     return (
         TensorDataset(xs, ys, es),

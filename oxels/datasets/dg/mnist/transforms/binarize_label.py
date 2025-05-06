@@ -1,4 +1,3 @@
-
 import torch.nn.functional as F
 
 from .domain_transform import DomainTransform
@@ -8,6 +7,7 @@ class BinarizeLabel(DomainTransform):
     """
     Binarizes the label based on a threshold value
     """
+
     def __init__(self, threshold: int):
         self.threshold = threshold
 

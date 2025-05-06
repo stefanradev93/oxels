@@ -1,4 +1,3 @@
-
 from .base import DomainBedImageFolder
 
 import pathlib
@@ -67,17 +66,27 @@ class TerraIncognita(DomainBedImageFolder):
 
         download_and_extract(
             "https://lilablobssc.blob.core.windows.net/caltechcameratraps/eccv_18_all_images_sm.tar.gz",
-            os.path.join(full_path, "terra_incognita_images.tar.gz"))
+            os.path.join(full_path, "terra_incognita_images.tar.gz"),
+        )
 
         download_and_extract(
             "https://lilablobssc.blob.core.windows.net/caltechcameratraps/labels/caltech_camera_traps.json.zip",
-            os.path.join(full_path, "caltech_camera_traps.json.zip"))
+            os.path.join(full_path, "caltech_camera_traps.json.zip"),
+        )
 
         include_locations = ["38", "46", "100", "43"]
 
         include_categories = [
-            "bird", "bobcat", "cat", "coyote", "dog", "empty", "opossum", "rabbit",
-            "raccoon", "squirrel"
+            "bird",
+            "bobcat",
+            "cat",
+            "coyote",
+            "dog",
+            "empty",
+            "opossum",
+            "rabbit",
+            "raccoon",
+            "squirrel",
         ]
 
         images_folder = os.path.join(full_path, "eccv_18_all_images_sm/")
@@ -93,30 +102,29 @@ class TerraIncognita(DomainBedImageFolder):
             data = json.load(f)
 
         category_dict = {}
-        for item in data['categories']:
-            category_dict[item['id']] = item['name']
+        for item in data["categories"]:
+            category_dict[item["id"]] = item["name"]
 
-        for image in data['images']:
-            image_location = image['location']
+        for image in data["images"]:
+            image_location = image["location"]
 
             if image_location not in include_locations:
                 continue
 
-            loc_folder = os.path.join(destination_folder,
-                                      'location_' + str(image_location) + '/')
+            loc_folder = os.path.join(destination_folder, "location_" + str(image_location) + "/")
 
             if not os.path.exists(loc_folder):
                 os.mkdir(loc_folder)
 
-            image_id = image['id']
-            image_fname = image['file_name']
+            image_id = image["id"]
+            image_fname = image["file_name"]
 
-            for annotation in data['annotations']:
-                if annotation['image_id'] == image_id:
+            for annotation in data["annotations"]:
+                if annotation["image_id"] == image_id:
                     if image_location not in stats:
                         stats[image_location] = {}
 
-                    category = category_dict[annotation['category_id']]
+                    category = category_dict[annotation["category_id"]]
 
                     if category not in include_categories:
                         continue
@@ -126,7 +134,7 @@ class TerraIncognita(DomainBedImageFolder):
                     else:
                         stats[image_location][category] += 1
 
-                    loc_cat_folder = os.path.join(loc_folder, category + '/')
+                    loc_cat_folder = os.path.join(loc_folder, category + "/")
 
                     if not os.path.exists(loc_cat_folder):
                         os.mkdir(loc_cat_folder)
@@ -138,4 +146,3 @@ class TerraIncognita(DomainBedImageFolder):
 
         shutil.rmtree(images_folder)
         os.remove(annotations_file)
-

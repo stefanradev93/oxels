@@ -1,4 +1,3 @@
-
 import torch
 from pathlib import Path
 
@@ -9,7 +8,6 @@ from .domain_generalization import DomainGeneralizationDataset
 
 
 class CaliforniaHousingDataset(DomainGeneralizationDataset):
-
     dirname = "california-housing-prices"
     filename = "housing.csv"
 
@@ -48,5 +46,3 @@ class CaliforniaHousingDataset(DomainGeneralizationDataset):
 
     def __getitem__(self, item):
         return self.data[item], self.targets[item]
-
-

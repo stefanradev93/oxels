@@ -42,8 +42,9 @@ class DomainBedDownloadMixin:
 
         # remove intermediate folder by moving all files up one level
         intermediate_folders = list(target.glob("*"))
-        assert len(intermediate_folders) == 1, f"Expected exactly one intermediate folder, " \
-                                               f"found {len(intermediate_folders)}"
+        assert len(intermediate_folders) == 1, (
+            f"Expected exactly one intermediate folder, found {len(intermediate_folders)}"
+        )
 
         # move all files up one level
         intermediate_folder = intermediate_folders[0]

@@ -5,13 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "diffusers>=0.33.1",
     "gdown>=5.2.0",
     "jupyter>=1.1.1",
     "jupyterlab>=4.4.1",
+    "lightning>=2.5.1.post0",
     "matplotlib>=3.10.1",
     "numpy>=2.2.5",
     "opencv-python>=4.11.0.86",
     "pandas>=2.2.3",
+    "pydantic>=2.11.4",
     "scikit-learn>=1.6.1",
     "scipy>=1.15.2",
     "seaborn>=0.13.2",
