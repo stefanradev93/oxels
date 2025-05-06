@@ -110,7 +110,9 @@ class UNet(nn.Module):
         residual = self.projector(x)
 
         x = self.encoder(x, **kwargs)
+        x = self.encoder_pooling(x)
         x = self.middle(x, **kwargs)
+        x = self.decoder_pooling(x)
         x = self.decoder(x, **kwargs)
 
         # center-crop after the forward pass to discard unusable pixels
