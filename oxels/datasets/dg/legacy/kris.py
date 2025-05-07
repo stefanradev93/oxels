@@ -10,10 +10,14 @@ from torch.utils.data import Dataset
 
 
 class SimulationDataset(Dataset):
-    def __init__(self, root, noise_aug: bool = False, noise_std: float = 0.3, flip_aug: bool = True,
-                 used_channels: Union[Iterable, Sized, int] = np.s_[:]
-                 ):
-
+    def __init__(
+        self,
+        root,
+        noise_aug: bool = False,
+        noise_std: float = 0.3,
+        flip_aug: bool = True,
+        used_channels: Union[Iterable, Sized, int] = np.s_[:],
+    ):
         self.image_list = sorted(glob.glob(root))
 
         self.image_list_length = len(self.image_list)
@@ -59,9 +63,7 @@ class SimulationDataset(Dataset):
         if self.noise_aug:
             img += torch.normal(0.0, self.noise_std, size=img.shape)
 
-        return {"image": img.type(torch.float32),
-                "oxy": oxy.type(torch.float32),
-                "seg": seg.type(torch.float32)}
+        return {"image": img.type(torch.float32), "oxy": oxy.type(torch.float32), "seg": seg.type(torch.float32)}
 
     def __len__(self):
         return self.image_list_length
@@ -73,10 +75,12 @@ def create_dataset_kris(batch_size=128):
 
     channel_indices = list(range(0, 16))
 
-    training_dataset_0 = SimulationDataset(root=os.path.join(data_root_0, "training/*.npz"),
-                                           used_channels=channel_indices)
-    training_dataset_1 = SimulationDataset(root=os.path.join(data_root_1, "training/*.npz"),
-                                           used_channels=channel_indices)
+    training_dataset_0 = SimulationDataset(
+        root=os.path.join(data_root_0, "training/*.npz"), used_channels=channel_indices
+    )
+    training_dataset_1 = SimulationDataset(
+        root=os.path.join(data_root_1, "training/*.npz"), used_channels=channel_indices
+    )
 
     training_dataloader_0 = DataLoader(training_dataset_0, batch_size=batch_size)
     training_dataloader_1 = DataLoader(training_dataset_1, batch_size=batch_size)
@@ -92,7 +96,7 @@ def create_dataset_kris(batch_size=128):
     es = []
     for i, dataloader in enumerate([training_dataloader_0, training_dataloader_1]):
         for jk, (batch) in enumerate(dataloader):
-            x = batch['image']  # [:,:3]
+            x = batch["image"]  # [:,:3]
             # x = x[:,:,:,:128]
             x = torch.cat((x, x), 2)
             y = torch.zeros(x.shape[0], 2)
@@ -117,7 +121,7 @@ def create_dataset_kris(batch_size=128):
     es_val = []
     for i, dataloader in enumerate([val_dataloader_0, val_dataloader_1]):
         for jk, (batch) in enumerate(dataloader):
-            x = batch['image']  # [:,:3]
+            x = batch["image"]  # [:,:3]
             # x = x[:,:,:,:128]
             x = torch.cat((x, x), 2)
             y = torch.zeros(x.shape[0], 2)
@@ -146,9 +150,11 @@ def create_dataset_kris(batch_size=128):
     xs_val, ys_val, es_val = xs_val[:], ys_val[:], es_val[:]
 
     workers = 1
-    dataloader = DataLoader(TensorDataset(xs, ys, es), batch_size=batch_size, shuffle=True, num_workers=workers,
-                            drop_last=True)
-    dataloader_val = DataLoader(TensorDataset(xs_val, ys_val, es_val), batch_size=batch_size, shuffle=True,
-                                num_workers=workers, drop_last=True)
+    dataloader = DataLoader(
+        TensorDataset(xs, ys, es), batch_size=batch_size, shuffle=True, num_workers=workers, drop_last=True
+    )
+    dataloader_val = DataLoader(
+        TensorDataset(xs_val, ys_val, es_val), batch_size=batch_size, shuffle=True, num_workers=workers, drop_last=True
+    )
 
     return dataloader, dataloader, dataloader_val, dataloader_val, dataloader_val

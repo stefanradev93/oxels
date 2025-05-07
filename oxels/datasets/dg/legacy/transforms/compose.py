@@ -5,6 +5,7 @@ class Compose(DomainTransform):
     """
     Compose multiple domain transforms
     """
+
     def __init__(self, transforms: list):
         self.transforms = transforms
 

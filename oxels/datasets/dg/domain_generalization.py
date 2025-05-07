@@ -1,4 +1,3 @@
-
 import torch
 from torch.utils.data import Dataset, Subset
 from pathlib import Path
@@ -7,7 +6,8 @@ from typing import Any
 
 
 class DomainGeneralizationDataset(Dataset):
-    """ Base class to construct the innermost domain datasets. """
+    """Base class to construct the innermost domain datasets."""
+
     all_domains: list[str] = NotImplemented
     domain_map: dict[str, Any] = NotImplemented
     n_classes: int = NotImplemented

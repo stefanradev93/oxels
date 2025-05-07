@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, Subset
@@ -8,6 +7,7 @@ class MultiDomainDataset(Dataset):
     """
     Dataset that combines multiple domains into one dataset, adding a one-hot domain label to each sample.
     """
+
     def __init__(self, *domains: Dataset, in_distribution: bool, n_domains: int):
         super().__init__()
         self.domains = list(domains)
@@ -33,7 +33,7 @@ class MultiDomainDataset(Dataset):
         return [len(domain) for domain in self.domains]
 
     def domain_indices(self, domain: int):
-        return list(range(sum(self.domain_lengths[:domain]), sum(self.domain_lengths[:domain+1])))
+        return list(range(sum(self.domain_lengths[:domain]), sum(self.domain_lengths[: domain + 1])))
 
     def domain(self, domain: int) -> Subset:
         return Subset(self, self.domain_indices(domain))

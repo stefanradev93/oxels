@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 from torch.nn import functional as F
@@ -9,8 +8,7 @@ from ..domain_generalization import DomainGeneralizationDataset
 
 
 class ProDASCondSatisfied(DomainGeneralizationDataset):
-
-    all_domains =['env_1', 'env_2', 'env_3', 'env_4']
+    all_domains = ["env_1", "env_2", "env_3", "env_4"]
     n_domains = 5
     n_classes = 1
 
@@ -18,22 +16,21 @@ class ProDASCondSatisfied(DomainGeneralizationDataset):
 
     def __init__(self, root: str | Path, download: bool = True):
         super().__init__(root, download=download)
-         
+
         # contains the images
         self.data = []
-        self.dirname = 'prodas'
+        self.dirname = "prodas"
 
-
-        self.augment = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(360),
-            transforms.ToTensor(),
-        ])
-        self.augment.transforms.append(
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self.augment = transforms.Compose(
+            [
+                transforms.ToPILImage(),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(360),
+                transforms.ToTensor(),
+            ]
         )
+        self.augment.transforms.append(transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
 
         # contains labels
         self.targets = []
@@ -43,11 +40,9 @@ class ProDASCondSatisfied(DomainGeneralizationDataset):
 
         self._domain_counts = []
 
-        domains = ['env_1', 'env_2', 'env_3', 'env_4']
+        domains = ["env_1", "env_2", "env_3", "env_4"]
 
-        for domain_num ,domain_name in enumerate(domains):
-
-
+        for domain_num, domain_name in enumerate(domains):
             images_path = Path(self.root) / self.dirname / (domain_name + "_x.npy")
             labels_path = Path(self.root) / self.dirname / (domain_name + "_y.npy")
 
@@ -68,9 +63,8 @@ class ProDASCondSatisfied(DomainGeneralizationDataset):
                 self._domain_counts.append(len(self.domains[-1]))
 
         self.data = torch.from_numpy(np.concatenate(self.data))
-        self.targets= torch.from_numpy(np.concatenate(self.targets)).view(-1,1)
+        self.targets = torch.from_numpy(np.concatenate(self.targets)).view(-1, 1)
         self.domains = torch.cat(self.domains)
-        
 
     def download(self) -> None:
         if self.root.is_dir():
@@ -87,7 +81,6 @@ class ProDASCondSatisfied(DomainGeneralizationDataset):
 
     def __len__(self) -> int:
         return len(self.data)
-
 
     def __getitem__(self, item) -> (torch.Tensor, torch.Tensor):
         # We augment all the data

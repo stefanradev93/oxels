@@ -13,6 +13,7 @@ class SetDataset(Dataset):
     if you split the dataset within a domain.
     This is caused by the fact that __getitem__ accesses items at other indices as well to construct the set.
     """
+
     def __init__(self, dataset: MultiDomainDataset, set_size: int = 10):
         super().__init__()
         self.dataset = dataset
@@ -31,7 +32,7 @@ class SetDataset(Dataset):
         idx = torch.arange(len(domain_set))
         idx = idx[idx != item]
         idx = idx[torch.randperm(len(idx))]
-        idx = idx[:self.set_size].tolist()
+        idx = idx[: self.set_size].tolist()
 
         subset = Subset(domain_set, idx)
         image_set = torch.stack([x[0] for x in subset])

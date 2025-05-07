@@ -1,4 +1,3 @@
-
 import torch
 from torchvision.datasets import MNIST
 
@@ -7,7 +6,7 @@ from ..transforms import Compose, OneHotLabel, Rotate
 
 
 class RotatedMNIST(SplitDomainDataset):
-    """ Rotated MNIST Dataset """
+    """Rotated MNIST Dataset"""
 
     n_classes = 10
 
@@ -32,8 +31,8 @@ class RotatedMNIST(SplitDomainDataset):
                 Rotate(75),
             ]
 
-        transforms = [
-            Compose([t, OneHotLabel(10)]) for t in transforms
-        ]
+        transforms = [Compose([t, OneHotLabel(10)]) for t in transforms]
 
-        super().__init__(data, labels, transforms, splits="equal", domains=5, in_distribution=in_distribution, normalize=normalize)
+        super().__init__(
+            data, labels, transforms, splits="equal", domains=5, in_distribution=in_distribution, normalize=normalize
+        )

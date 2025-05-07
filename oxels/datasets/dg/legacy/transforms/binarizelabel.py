@@ -5,6 +5,7 @@ class BinarizeLabel(DomainTransform):
     """
     Binarizes the label based on a threshold value
     """
+
     def __init__(self, threshold: int = 5):
         self.threshold = threshold
 

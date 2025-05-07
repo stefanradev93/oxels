@@ -18,13 +18,15 @@ class MalariaDataset(SplitDomainDataset):
         else:
             data, labels = ...
 
-        self.augment = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Resize((64, 64), interpolation=InterpolationMode.BILINEAR),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            RandomRotate(),
-        ])
+        self.augment = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Resize((64, 64), interpolation=InterpolationMode.BILINEAR),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                RandomRotate(),
+            ]
+        )
 
         super().__init__(
             data=data,
@@ -50,9 +52,9 @@ class MalariaDataset(SplitDomainDataset):
 
         cell_tensor_list = []
         for cell in cells_belonging_to_domain:
-            with open(cell, 'rb') as f:
+            with open(cell, "rb") as f:
                 with Image.open(f) as img:
-                    img = img.convert('RGB')
+                    img = img.convert("RGB")
             cell_tensor_list.append(self.to_tensor(self.resize(img)))
 
         # Concatenate
@@ -64,10 +66,10 @@ class MalariaDataset(SplitDomainDataset):
         domain_per_domain_list = []
 
         for i, domain in enumerate(self.domain_list):
-            cells_unifected = self.get_cells_from_imgs('Uninfected/', domain)
+            cells_unifected = self.get_cells_from_imgs("Uninfected/", domain)
             label_unifected = torch.zeros(cells_unifected.size()[0]) + 0
 
-            cells_parasitized = self.get_cells_from_imgs('Parasitized/', domain)
+            cells_parasitized = self.get_cells_from_imgs("Parasitized/", domain)
             label_parasitized = torch.zeros(cells_parasitized.size()[0]) + 1
 
             cells_per_domain_list.append(torch.cat((cells_unifected, cells_parasitized), 0))
@@ -84,10 +86,8 @@ class MalariaDataset(SplitDomainDataset):
         y = torch.eye(2)
         train_labels = y[train_labels]
 
-        #d = torch.eye(len(self.domain_list))
+        # d = torch.eye(len(self.domain_list))
         d = torch.eye(10)
         train_domains = d[train_domains]
 
         return train_imgs, train_labels, train_domains
-
-

@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, Subset
@@ -20,14 +19,15 @@ class MultiDomainDataset(Dataset):
 
     You may also pass a list of DomainTransforms, one for each domain.
     """
+
     def __init__(
-            self,
-            data: list[torch.Tensor],
-            labels: list[torch.Tensor],
-            transforms: list[DomainTransform] | None,
-            domains: int,
-            in_distribution: bool,
-            normalize: Choice("none", "domain", "all") = "none",
+        self,
+        data: list[torch.Tensor],
+        labels: list[torch.Tensor],
+        transforms: list[DomainTransform] | None,
+        domains: int,
+        in_distribution: bool,
+        normalize: Choice("none", "domain", "all") = "none",
     ):
         """
         :param data: list of tensors for each domain
@@ -44,8 +44,9 @@ class MultiDomainDataset(Dataset):
             # this is a hack but since this is only called once we don't really care about the overhead
             transforms = [IdentityTransform() for _ in range(len(data))]
 
-        assert len(data) == len(labels) == len(transforms), \
+        assert len(data) == len(labels) == len(transforms), (
             f"Environment Mismatch: {len(data)}, {len(labels)}, {len(transforms)}"
+        )
 
         assert normalize in ("none", "domain", "all"), f"Unrecognized normalization: '{normalize}'"
 
@@ -92,7 +93,7 @@ class MultiDomainDataset(Dataset):
         return Subset(self, indices)
 
     def domain_indices(self, domain: int) -> Sequence[int]:
-        """ Return the indices pertaining to the subset of the dataset containing only the given domain. """
+        """Return the indices pertaining to the subset of the dataset containing only the given domain."""
         # handle negative indices
         if domain < 0:
             domain += len(self._domain_counts)
@@ -100,7 +101,7 @@ class MultiDomainDataset(Dataset):
             raise IndexError(f"Domain {domain} is out of range for dataset with {len(self._domain_counts)} domains")
 
         # compute indices from domain counts
-        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[:domain + 1])))
+        indices = list(range(sum(self._domain_counts[:domain]), sum(self._domain_counts[: domain + 1])))
 
         return indices
 

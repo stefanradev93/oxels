@@ -1,4 +1,3 @@
-
 import torch
 import numpy as np
 import pandas as pd
@@ -21,12 +20,26 @@ def convert_one_hot(df: pd.DataFrame, column: str) -> pd.DataFrame:
 
 
 class CensusIncomeDataset(DomainGeneralizationDataset):
-
     url = "https://archive.ics.uci.edu/static/public/2/adult.zip"
     dirname = "census-income"
 
-    names = ["age", "workclass", "fnlwgt", "education", "education-num", "marital-status", "occupation", "relationship",
-             "race", "sex", "capital-gain", "capital-loss", "hours-per-week", "native-country", "income"]
+    names = [
+        "age",
+        "workclass",
+        "fnlwgt",
+        "education",
+        "education-num",
+        "marital-status",
+        "occupation",
+        "relationship",
+        "race",
+        "sex",
+        "capital-gain",
+        "capital-loss",
+        "hours-per-week",
+        "native-country",
+        "income",
+    ]
 
     def download(self) -> None:
         path = self.root / self.dirname
@@ -74,8 +87,15 @@ class CensusIncomeEthnicity(CensusIncomeDataset):
         df = df.dropna()
         df = df.sort_values("race")
 
-        categorical_columns = ["education", "workclass", "marital-status", "occupation", "relationship", "sex",
-                               "native-country"]
+        categorical_columns = [
+            "education",
+            "workclass",
+            "marital-status",
+            "occupation",
+            "relationship",
+            "sex",
+            "native-country",
+        ]
         for column in categorical_columns:
             df = convert_one_hot(df, column)
 
@@ -98,5 +118,3 @@ class CensusIncomeEthnicity(CensusIncomeDataset):
 
     def __len__(self):
         return len(self.data)
-
-

@@ -1,4 +1,3 @@
-
 import torch
 from torch.utils.data import Dataset, random_split
 from typing import Literal
@@ -17,7 +16,17 @@ class DGPerspectiveDataset(Dataset):
         "test": 0.1,
     }
 
-    def __init__(self, path: str | PathLike, dataset: str, w: int, h: int, frac_keep: float = 0.125, split: Literal["train", "val", "test"] = "train", domain_split: Literal["id", "ood"] = "id", seed: int = 0):
+    def __init__(
+        self,
+        path: str | PathLike,
+        dataset: str,
+        w: int,
+        h: int,
+        frac_keep: float = 0.125,
+        split: Literal["train", "val", "test"] = "train",
+        domain_split: Literal["id", "ood"] = "id",
+        seed: int = 0,
+    ):
         self.path = Path(path)
         self.split = split
         self.domain_split = domain_split
@@ -28,28 +37,24 @@ class DGPerspectiveDataset(Dataset):
         with torch.device("cpu"):
             rgb, label, domain = self.dataset.__getitem__(item)
         rgb = rgb.numpy(force=True)
-        return self.transform.get_views_and_permutation(rgb)
+        rgb = rgb.transpose(1, 2, 0)
+
+        # this needs channels last
+        view1, view2, permutation, flags, mask1, mask2 = self.transform.get_views_and_permutation(rgb)
+
+        view1 = view1.transpose(2, 0, 1)
+        view2 = view2.transpose(2, 0, 1)
+        return view1, view2, permutation, flags, mask1, mask2
+
+    def __len__(self):
+        return len(self.dataset)
 
     def _get_raw_dataset(self, dataset: str):
-        # TODO: the commented-out datasets are not image datasets (except ProDAS)
-        # do we want to remove those?
         match dataset.lower():
-            # case "BikeSharingSeason":
-            #     from dg import BikeSharingSeason
-            #
-            #     return BikeSharingSeason(self.path, download=True)
-            # case "CaliforniaHousing":
-            #     from dg import CaliforniaHousingDataset
-            #
-            #     return CaliforniaHousingDataset(self.path, download=True)
             case "camelyon17":
                 from .dg import Camelyon17
-                
+
                 return Camelyon17(self.path, download=True)
-            # case "CensusIncomeEthnicity":
-            #     from dg import CensusIncomeEthnicity
-            #
-            #     return CensusIncomeEthnicity(self.path, download=True)
             case "coloredmnist":
                 from .dg import ColoredMNIST
 
@@ -62,10 +67,6 @@ class DGPerspectiveDataset(Dataset):
                 from .dg import FMoWYear
 
                 return FMoWYear(self.path, download=True)
-            # case "MLBook":
-            #     from dg import MLBookDataset
-            #
-            #     return MLBookDataset(self.path, download=True)
             case "officehome":
                 from .dg import OfficeHome
 
@@ -74,10 +75,6 @@ class DGPerspectiveDataset(Dataset):
                 from .dg import PACS
 
                 return PACS(self.path, download=True)
-            # case "ProDASCondSatisfied":
-            #     from dg import ProDASCondSatisfied
-            #
-            #     return ProDASCondSatisfied(self.path, download=True)
             case "rotatedmnist":
                 from .dg import RotatedMNIST
 
@@ -98,10 +95,6 @@ class DGPerspectiveDataset(Dataset):
                 from .dg import PovertyMapCountry
 
                 return PovertyMapCountry(self.path, download=True)
-            # case "Simpson":
-            #     from dg import SimpsonDataset
-            #
-            #     return SimpsonDataset(self.path, download=True)
             case other:
                 raise NotImplementedError(f"Unrecognized dataset: {other}")
 
@@ -128,4 +121,6 @@ class DGPerspectiveDataset(Dataset):
         raw_dataset = self._get_raw_dataset(dataset)
         splits = self._get_splits(raw_dataset, seed)
 
-        return MultiDomainDataset(*splits, in_distribution=self.domain_split == "id", n_domains=len(raw_dataset.all_domains))
+        return MultiDomainDataset(
+            *splits, in_distribution=self.domain_split == "id", n_domains=len(raw_dataset.all_domains)
+        )

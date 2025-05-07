@@ -45,9 +45,9 @@ def sample_random_on_mesh(mesh: trimesh.Trimesh, N_max: int, camera_pose: np.nda
     origins = np.tile(camera_pose[:3,3], (N_max,1))
 
     loc, ray_id, _ = mesh.ray.intersects_location(
-        ray_origins   = origins,
-        ray_directions= dirs,
-        multiple_hits = False  # only the first hit per ray
+        ray_origins=origins,
+        ray_directions=dirs,
+        multiple_hits=False,  # only the first hit per ray
     )
 
     return loc, np.stack([u[ray_id], v[ray_id]], axis=1)
@@ -96,13 +96,11 @@ def get_visible_matches(mesh: trimesh.Trimesh, xyz: np.ndarray, camera_pose: np.
 
     #Find intersections with the mesh, this time from the camera's viewpoint
     xyz2, ray_id, _ = mesh.ray.intersects_location(
-        ray_origins    = origins[match_mask],
-        ray_directions = dirs[match_mask],
-        multiple_hits  = False
+        ray_origins=origins[match_mask], ray_directions=dirs[match_mask], multiple_hits=False
     )
 
     #It's not a match if the new interesction is far from the original points (e.g., because of obstructions)
     diff = np.linalg.norm(xyz[match_mask][ray_id] - xyz2, axis=1)
     match_mask[ray_id[diff > tol]] = False
 
-    return match_mask, np.stack([u,v], axis=1)[match_mask]
+    return match_mask, np.stack([u, v], axis=1)[match_mask]

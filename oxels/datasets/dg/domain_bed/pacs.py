@@ -1,5 +1,4 @@
 from .domain_bed import DomainBedDataset
-from .download import DomainBedDownloadMixin
 
 
 class PACS(DomainBedDataset):

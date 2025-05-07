@@ -35,6 +35,7 @@ def original_loss(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tensor:
     B, C, H, W = oview1.shape
     losses = []
 
+    # TODO: vectorize this
     for b in range(B):
         idx = indices[b]
         _mask = mask1[b] * mask2[b][idx]

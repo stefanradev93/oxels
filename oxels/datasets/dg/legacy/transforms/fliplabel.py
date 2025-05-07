@@ -7,6 +7,7 @@ class FlipLabel(DomainTransform):
     """
     Randomly flips the binary label
     """
+
     def __init__(self, p: float = 1.0):
         self.p = p
 

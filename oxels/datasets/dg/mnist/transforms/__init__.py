@@ -1,4 +1,3 @@
-
 from .binarize_label import BinarizeLabel
 from .compose import Compose
 from .domain_transform import DomainTransform

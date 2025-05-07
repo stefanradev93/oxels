@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn.functional as F
 
@@ -18,10 +17,12 @@ class WILDSDataset(DomainGeneralizationDataset):
         self.wilds = wilds.get_dataset(self.name, root_dir=self.root, download=False)
         self.domains = self.wilds.metadata_array[:, domain_meta_index].long()
 
-        self.transform = transforms.Compose([
-            transforms.Resize([224, 224]),
-            transforms.ToTensor(),
-        ])
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize([224, 224]),
+                transforms.ToTensor(),
+            ]
+        )
 
         self.target_transform = transforms.Lambda(lambda x: F.one_hot(x, num_classes=self.n_classes))
 
