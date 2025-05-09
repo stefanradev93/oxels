@@ -2,7 +2,6 @@ from collections.abc import Sequence
 from typing import Optional
 
 import torch.nn as nn
-from lightning.pytorch.utilities.types import OptimizerLRScheduler
 
 from oxels.networks import UNet
 from oxels.networks.helpers import ConvBlock

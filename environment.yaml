@@ -20,3 +20,6 @@ dependencies:
       - diffusers
       - wandb
       - optuna
+      - rtree
+      - "pyglet<2"
+      - trimesh
