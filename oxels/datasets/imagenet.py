@@ -55,10 +55,3 @@ class ImageNet(Dataset):
                 print(f"Found and verified {file} at {path} with hash {target_hash}.")
 
         fiftyone.zoo.download_zoo_dataset("imagenet-2012", source_dir=path)
-
-            # with tarfile.open(filepath, "rb") as archive:
-            #     archive.extractall(path=path)
-
-
-if __name__ == "__main__":
-    imgnet = ImageNet(w=32, h=32)
