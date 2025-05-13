@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from simple_downsample import SimpleDownSample
 from simple_upsample import SimpleUpSample
@@ -10,6 +9,8 @@ from simple_norm import SimpleNorm
 
 
 class SimpleUViT(nn.Module):
+
+    DEFAULT_NUM_BLOCKS_PER_STAGE = 3
     """
     Plain U-ViT without time embeddings, using SimpleNorm for normalization.
 
@@ -140,12 +141,53 @@ class SimpleUViT(nn.Module):
 
 
 if __name__ == "__main__":
+    from tqdm import tqdm
+    import torch.nn.functional as F
+
     # Sanity test
-    model = SimpleUViT(height=64, width=64, channels_of_stage=[16, 32, 64], num_res_blocks=[2, 3, 4])
+    b_ch = 64
+    simple_diffusion_512 = {
+        "height": 512,
+        "width": 512,
+        "in_channels": 3,
+        "out_channels": 16,
+        "channels_of_stage": [1*b_ch, 2*b_ch, 4*b_ch],
+        "num_res_blocks": [2, 2, 2],
+        "residual_dropout": [0.1, 0.1, 0.1],
+        "num_transformer_blocks": 24,
+        "num_heads": 4,
+        "transformer_expansion": 4,
+        "transformer_dropout": 0.2,
+        "norm_groups": 8
+    }
+    config = simple_diffusion_512
+    model = SimpleUViT(height=config["height"], width=config["width"], in_channels=config["in_channels"], out_channels=config["out_channels"],
+                       channels_of_stage=config["channels_of_stage"],
+                       num_res_blocks=config["num_res_blocks"],
+                       residual_dropout=config["residual_dropout"],
+                       num_transformer_blocks=config["num_transformer_blocks"],
+                       num_heads=config["num_heads"],
+                       transformer_expansion=config["transformer_expansion"],
+                       transformer_dropout=config["transformer_dropout"],
+                       norm_groups=config["norm_groups"]
+                       )
     print(model)
-    x = torch.randn(1, 16, 64, 64)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    # print number of parameters
+    print(f"Number of parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
+    model.train()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    bs = 1
+    for i in tqdm(range(100)):
+        optimizer.zero_grad()
+        x = torch.randn(bs, config["in_channels"], config["height"], config["width"]).to(device)
+        y = model(x)
+        loss = F.mse_loss(y, torch.randn(bs, config["out_channels"], config["height"], config["width"]).to(device))
+        loss.backward()
+        optimizer.step()
+    print("Training complete.")
     print("Input shape:", x.shape)
-    y = model(x)
     print("Output shape:", y.shape)
     # Down path
     h = model.initial_emb(x)

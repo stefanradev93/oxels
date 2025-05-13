@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from oxels.types import ActivationType
+from oxels.typing import ActivationType
 from simple_mlp  import SimpleMLPBlock
 from simple_self_attention import SimpleAttention
 

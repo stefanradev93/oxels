@@ -121,7 +121,7 @@ class SimpleAttention(nn.Module):
         attn_vals = torch.einsum('bhqk,bkhd->bqhd', weights, v)  # (B, HW, heads, head_dim)
 
         # 8) Merge heads and final projection
-        attn_vals = attn_vals.contiguous().view(B, HW, self.c_dim)  # (B, HW, C)
+        attn_vals = attn_vals.reshape(B, HW, self.c_dim)  # (B, HW, C)
         out = self.out_proj(attn_vals)                               # (B, HW, C)
 
         # 9) Reshape back to spatial

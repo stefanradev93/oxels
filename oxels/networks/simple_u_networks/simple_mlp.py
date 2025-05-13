@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from oxels.types import ActivationType
+from oxels.typing import ActivationType
 from simple_norm import SimpleNorm
 
 

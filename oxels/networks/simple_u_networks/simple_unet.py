@@ -27,8 +27,10 @@ class SimpleUNet(nn.Module):
         channels_of_stage: list,
         in_channels: int = None,
         out_channels: int = 1,
-        has_attention: list = None,
         num_res_blocks: list = None,
+        residual_dropout: list = None,
+        has_attention: list = None,
+        num_heads: int = 4,
         norm_groups: int = 8
     ):
         super().__init__()
@@ -60,10 +62,10 @@ class SimpleUNet(nn.Module):
                     out_channels=channels_of_stage[i],
                     activation=nn.SiLU,
                     has_skip=False,
-                    dropout=0.0
+                    dropout=residual_dropout[i],
                 ))
                 attns.append(SimpleAttention(
-                    num_heads=1,
+                    num_heads=num_heads,
                     channel_dim=channels_of_stage[i]
                 ) if has_attention[i] else nn.Identity())
             self.res_down.append(blocks)
@@ -74,14 +76,14 @@ class SimpleUNet(nn.Module):
 
         # Middle: one Res, one attention, one Res
         self.mid_res1 = SimpleResidualBlock(
-            out_channels=channels_of_stage[-1], activation=nn.SiLU, has_skip=False, dropout=0.0
+            out_channels=channels_of_stage[-1], activation=nn.SiLU, has_skip=False, dropout=residual_dropout[-1]
         )
         self.mid_attn = SimpleAttention(
-            num_heads=1,
+            num_heads=num_heads,
             channel_dim=channels_of_stage[-1]
         )
         self.mid_res2 = SimpleResidualBlock(
-            out_channels=channels_of_stage[-1], activation=nn.SiLU, has_skip=False, dropout=0.0
+            out_channels=channels_of_stage[-1], activation=nn.SiLU, has_skip=False, dropout=residual_dropout[-1]
         )
 
         # Up path
@@ -97,10 +99,10 @@ class SimpleUNet(nn.Module):
                     out_channels=channels_of_stage[i],
                     activation=nn.SiLU,
                     has_skip=(j < num_res_blocks[i]),
-                    dropout=0.0
+                    dropout=residual_dropout[i],
                 ))
                 attns.append(SimpleAttention(
-                    num_heads=1,
+                    num_heads=num_heads,
                     channel_dim=channels_of_stage[i]
                 ) if has_attention[i] else nn.Identity())
             self.res_up.append(blocks)
@@ -156,12 +158,53 @@ class SimpleUNet(nn.Module):
 
 if __name__ == "__main__":
     # Sanity test
-    model = SimpleUNet(height=64, width=64, channels_of_stage=[16,32,64,128], has_attention=[False,True,True,False], num_res_blocks=[1,2,3,4])
+    from tqdm import tqdm
+    import torch.nn.functional as F
+
+    # Sanity test
+    b_ch = 64
+    simple_diffusion_512 = {
+        "height": 256,
+        "width": 256,
+        "in_channels": 3,
+        "out_channels": 32,
+        "channels_of_stage": [1 * b_ch, 2*b_ch, 2*b_ch, 4 * b_ch, 4 * b_ch],
+        "num_res_blocks": [2, 2, 4, 4, 4],
+        "residual_dropout": [0.1]*5,
+        "has_attention": [False, False, False, False, True],
+        "num_heads": 4,
+        "norm_groups": 8
+    }
+    config = simple_diffusion_512
+    b_ch = 64
+    model = SimpleUNet(height=config["height"], width=config["width"], in_channels=config["in_channels"], out_channels=config["out_channels"],
+                       channels_of_stage=config["channels_of_stage"],
+                       num_res_blocks=config["num_res_blocks"],
+                       residual_dropout=config["residual_dropout"],
+                       has_attention=config["has_attention"],
+                       num_heads=config["num_heads"],
+                       norm_groups=config["norm_groups"]
+                       )
     print(model)
-    x = torch.randn(1, model.initial_conv.in_channels, 64, 64)
-    print("Input:", x.shape)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    # print number of parameters
+    print(f"Number of parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
+    model.train()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    bs = 12
+    for i in tqdm(range(100)):
+        optimizer.zero_grad()
+        x = torch.randn(bs, config["in_channels"], config["height"], config["width"]).to(device)
+        y = model(x)
+        loss = F.mse_loss(y, torch.randn(bs, config["out_channels"], config["height"], config["width"]).to(device))
+        loss.backward()
+        optimizer.step()
+    print("Training complete.")
+    print("Input shape:", x.shape)
+    print("Output shape:", y.shape)
     # down
-    h = x
+    h = model.initial_conv(x)
     skips = []
     for i, (blocks, atts, down) in enumerate(zip(model.res_down, model.attn_down, model.down_ops)):
         for j, (blk, att) in enumerate(zip(blocks, atts)):

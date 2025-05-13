@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 
-from oxels.types import ActivationType
+from oxels.typing import ActivationType
 from simple_norm import SimpleNorm
 
 
@@ -88,7 +88,9 @@ class SimpleResidualBlock(nn.Module):
                 skip_h: torch.Tensor = None) -> torch.Tensor:
         # x, skip_h: (B, C, H, W)
         h = self.norm_in(x)
-        if self.has_skip and skip_h is not None:
+        if self.has_skip:
+            if skip_h is None:
+                raise ValueError(f"Module {self.__class__.__name__} requires skip_h to be provided. But got None.")
             skip_normed = self.norm_skip(skip_h)
             h = (h + skip_normed) / math.sqrt(2.0)
 
