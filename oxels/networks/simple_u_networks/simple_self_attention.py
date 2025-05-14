@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from simple_norm import SimpleNorm
+from .simple_norm import SimpleNorm
 
 class SimpleAttention(nn.Module):
     """

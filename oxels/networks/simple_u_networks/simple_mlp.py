@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from oxels.typing import ActivationType
-from simple_norm import SimpleNorm
+from .simple_norm import SimpleNorm
 
 
 class SimpleMLPBlock(nn.Module):

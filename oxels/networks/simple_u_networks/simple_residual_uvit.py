@@ -3,11 +3,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from simple_downsample import SimpleDownSample
-from simple_upsample import SimpleUpSample
-from simple_residual_block import SimpleResidualBlock
-from simple_transformer_block import SimpleTransformerBlock
-from simple_norm import SimpleNorm
+from .simple_downsample import SimpleDownSample
+from .simple_upsample import SimpleUpSample
+from .simple_residual_block import SimpleResidualBlock
+from .simple_transformer_block import SimpleTransformerBlock
+from .simple_norm import SimpleNorm
 
 class SimpleResidualUViT(nn.Module):
     """

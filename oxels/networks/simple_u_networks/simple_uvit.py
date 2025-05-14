@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 
-from simple_downsample import SimpleDownSample
-from simple_upsample import SimpleUpSample
-from simple_residual_block import SimpleResidualBlock
-from simple_transformer_block import SimpleTransformerBlock
-from simple_norm import SimpleNorm
+from .simple_downsample import SimpleDownSample
+from .simple_upsample import SimpleUpSample
+from .simple_residual_block import SimpleResidualBlock
+from .simple_transformer_block import SimpleTransformerBlock
+from .simple_norm import SimpleNorm
 
 
 class SimpleUViT(nn.Module):
@@ -224,4 +224,3 @@ if __name__ == "__main__":
     print("After final activation:", h.shape)
     y = model.conv_out(h)
     print("Final output shape:", y.shape)
-

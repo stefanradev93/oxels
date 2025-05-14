@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 
 from oxels.typing import ActivationType
-from simple_mlp  import SimpleMLPBlock
-from simple_self_attention import SimpleAttention
+from .simple_mlp  import SimpleMLPBlock
+from .simple_self_attention import SimpleAttention
 
 class SimpleTransformerBlock(nn.Module):
     """

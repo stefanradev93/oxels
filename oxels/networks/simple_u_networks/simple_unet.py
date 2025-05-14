@@ -1,11 +1,13 @@
+from collections.abc import Sequence
+
 import torch
 import torch.nn as nn
 
-from simple_downsample import SimpleDownSample
-from simple_upsample import SimpleUpSample
-from simple_residual_block import SimpleResidualBlock
-from simple_self_attention import SimpleAttention
-from simple_norm import SimpleNorm
+from .simple_downsample import SimpleDownSample
+from .simple_upsample import SimpleUpSample
+from .simple_residual_block import SimpleResidualBlock
+from .simple_self_attention import SimpleAttention
+from .simple_norm import SimpleNorm
 
 
 class SimpleUNet(nn.Module):
@@ -24,12 +26,12 @@ class SimpleUNet(nn.Module):
         self,
         height: int,
         width: int,
-        channels_of_stage: list,
+        channels_of_stage: Sequence[int],
         in_channels: int = None,
         out_channels: int = 1,
-        num_res_blocks: list = None,
-        residual_dropout: list = None,
-        has_attention: list = None,
+        num_res_blocks: Sequence[int] = None,
+        residual_dropout: Sequence[float] = None,
+        has_attention: Sequence[bool] = None,
         num_heads: int = 4,
         norm_groups: int = 8
     ):
