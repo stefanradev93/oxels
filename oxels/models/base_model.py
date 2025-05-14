@@ -28,7 +28,7 @@ class BaseModel(MetricsMixin, L.LightningModule):
         self.save_hyperparameters(learning_rate, weight_decay, lr_div_factor, lr_final_div_factor, total_steps, ignore=["backbone"])
         self.backbone = backbone
 
-    @jit
+    # @jit
     def compute_loss(self, batch):
         view1, view2, permutation, flags, mask1, mask2 = batch
 

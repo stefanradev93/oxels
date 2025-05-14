@@ -78,16 +78,20 @@ def objective(trial: optuna.Trial):
 
     model = ImageNetModel(**model_config)
 
-    config = model_config | trainer_config
-    config["trial_steps"] = trial_steps
-    config["num_parameters"] = sum(p.numel() for p in model.parameters())
+    num_parameters = sum(p.numel() for p in model.parameters())
 
-    wandb.init(
+    config = model_config | trainer_config
+
+    run = wandb.init(
         entity="kl_divergence-rensselaer-polytechnic-institute",
         project="oxels",
         name="ImageNet Hyperparameter Tuning",
         config=config,
+        dir="wandb_results",
     )
+
+    wandb.summary["trial_steps"] = trial_steps
+    wandb.summary["num_parameters"] = num_parameters
 
     logger = WandbLogger(
         name="ImageNet Hyperparameter Tuning",
@@ -112,6 +116,10 @@ def objective(trial: optuna.Trial):
     trainer.fit(model)
 
     metrics = trainer.validate(model)[0]
+
+    wandb.summary["validation/loss"] = metrics["validation/loss"]
+
+    run.finish()
 
     return metrics["validation/loss"]
 
