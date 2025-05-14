@@ -13,10 +13,13 @@ class CIFAR10(Dataset):
     default_path = Path(__file__).parents[2] / "datasets"
     default_path = default_path.resolve()
 
-    def __init__(self, path: str | PathLike = default_path, w=32, h=32, frac_keep=0.125, split="train"):
+    def __init__(self, path: str | PathLike = default_path, w=32, h=32, frac_keep=0.125, split="train", transform=None):
         super().__init__()
+        if transform is None:
+            transform = ToTensor()
+
         self.path = Path(path) / "CIFAR-10"
-        self.dataset = _CIFAR10(self.path, train=(split == "train"), transform=ToTensor(), download=True)
+        self.dataset = _CIFAR10(self.path, train=(split == "train"), transform=transform, download=True)
         self.transform = PerspectiveTransform(w=w, h=h, frac_keep=frac_keep)
 
     def __getitem__(self, item):

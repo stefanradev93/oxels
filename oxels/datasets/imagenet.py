@@ -27,11 +27,11 @@ class ImageNet(Dataset):
     default_path = Path(__file__).parents[2] / "datasets"
     default_path = default_path.resolve()
 
-    def __init__(self, path: str | PathLike = default_path, w: int = 256, h: int = 256, frac_keep: float = 0.125, split: str = "train"):
+    def __init__(self, path: str | PathLike = default_path, w: int = 256, h: int = 256, frac_keep: float = 0.125, split: str = "train", transform=None):
         super().__init__()
         self.path = Path(path) / "ImageNet1K"
         self.download(self.path)
-        self.dataset = ImageNetVision(self.path, split)
+        self.dataset = ImageNetVision(self.path, split, transform=transform)
         self.transform = PerspectiveTransform(w=w, h=h, frac_keep=frac_keep)
 
     def __getitem__(self, item):
