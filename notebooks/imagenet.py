@@ -39,8 +39,8 @@ def objective(trial: optuna.Trial):
     num_res_blocks = [
         1,
         trial.suggest_int("num_res_blocks_1", 1, 2, step=1),
-        trial.suggest_int("num_res_blocks_2", 1, 4, step=2),
-        trial.suggest_int("num_res_blocks_3", 1, 6, step=2),
+        trial.suggest_int("num_res_blocks_2", 2, 4, step=2),
+        trial.suggest_int("num_res_blocks_3", 2, 6, step=2),
         trial.suggest_int("num_res_blocks_4", 2, 8, step=2),
         trial.suggest_int("num_res_blocks_5", 2, 8, step=2),
     ]
@@ -69,7 +69,7 @@ def objective(trial: optuna.Trial):
     trainer_config = dict(
         gradient_clip_val=3.0,
         gradient_clip_algorithm="value",
-        max_steps=total_steps,
+        max_steps=trial_steps,
         accelerator="gpu",
         strategy="ddp",
         devices=num_devices,
@@ -105,12 +105,6 @@ def objective(trial: optuna.Trial):
                 save_top_k=1,
                 filename="best_model",
             ),
-            callbacks.EarlyStopping(
-                monitor="training/loss",
-                patience=trial_steps,
-                mode="min",
-                min_delta=float("inf"),
-            )
         ],
         logger=logger,
     )
