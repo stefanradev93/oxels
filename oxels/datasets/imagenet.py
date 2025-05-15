@@ -7,7 +7,6 @@ from torchvision.datasets.utils import check_integrity, download_url
 
 from oxels.transforms import PerspectiveTransform
 
-
 import fiftyone.zoo
 
 
@@ -23,7 +22,15 @@ class ImageNet(Dataset):
     default_path = Path(__file__).parents[2] / "datasets"
     default_path = default_path.resolve()
 
-    def __init__(self, path: str | PathLike = default_path, w: int = 256, h: int = 256, frac_keep: float = 0.125, split: str = "train", transform=None):
+    def __init__(
+        self,
+        path: str | PathLike = default_path,
+        w: int = 256,
+        h: int = 256,
+        frac_keep: float = 0.125,
+        split: str = "train",
+        transform=None,
+    ):
         super().__init__()
         self.path = Path(path) / "ImageNet1K"
         self.download(self.path)
@@ -51,10 +58,3 @@ class ImageNet(Dataset):
                 print(f"Found and verified {file} at {path} with hash {target_hash}.")
 
         fiftyone.zoo.download_zoo_dataset("imagenet-2012", source_dir=path)
-
-            # with tarfile.open(filepath, "rb") as archive:
-            #     archive.extractall(path=path)
-
-
-if __name__ == "__main__":
-    imgnet = ImageNet(w=32, h=32)

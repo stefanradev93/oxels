@@ -1,4 +1,3 @@
-
 import torch
 from torch.utils.data import Dataset
 from torchvision.datasets import CIFAR10 as _CIFAR10
