@@ -16,6 +16,7 @@ def objective(trial: optuna.Trial):
     trial_steps = 10_000
     effective_batch_size = 256
     image_size = 64
+    num_nodes = 16
     num_devices = torch.cuda.device_count()
     batch_size = effective_batch_size // num_devices
     learning_rate = trial.suggest_float("learning_rate", 1e-4, 5e-3, log=True)
@@ -74,6 +75,7 @@ def objective(trial: optuna.Trial):
         strategy="ddp",
         devices=num_devices,
         precision="16-mixed",
+        num_nodes=num_nodes,
     )
 
     model = ImageNetModel(**model_config)
