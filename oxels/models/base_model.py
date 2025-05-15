@@ -1,12 +1,9 @@
-from typing import Optional, Union
-
 import lightning as L
-import torch
 import torch.nn as nn
-from torch import compile as jit
 
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
+from torch import compile as jit
 
 from oxels.losses import original_loss
 
@@ -25,15 +22,21 @@ class BaseModel(MetricsMixin, L.LightningModule):
         total_steps: int,
     ):
         super().__init__()
-        self.save_hyperparameters(learning_rate, weight_decay, lr_div_factor, lr_final_div_factor, total_steps, ignore=["backbone"])
+        self.save_hyperparameters(
+            learning_rate, weight_decay, lr_div_factor, lr_final_div_factor, total_steps, ignore=["backbone"]
+        )
         self.backbone = backbone
 
-    # @jit
+    @jit
+    def forward(self, x):
+        return self.backbone(x)
+
+    @jit
     def compute_loss(self, batch):
         view1, view2, permutation, flags, mask1, mask2 = batch
 
-        oxels_view1 = self.backbone(view1)
-        oxels_view2 = self.backbone(view2)
+        oxels_view1 = self(view1)
+        oxels_view2 = self(view2)
 
         loss = original_loss(oxels_view1, oxels_view2, permutation, flags, mask1, mask2)
 
@@ -43,7 +46,7 @@ class BaseModel(MetricsMixin, L.LightningModule):
         lr = self.hparams.learning_rate
         wd = self.hparams.weight_decay
 
-        optimizer = AdamW(self.parameters(), lr=lr, weight_decay=wd)
+        optimizer = AdamW(self.parameters(), lr=lr, weight_decay=wd, betas=(0.9, 0.99))
         scheduler = OneCycleLR(
             optimizer,
             max_lr=lr,
