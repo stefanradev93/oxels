@@ -1,4 +1,3 @@
-
 import lightning as L
 import optuna
 import torch
@@ -6,7 +5,9 @@ from lightning.pytorch import callbacks
 from lightning.pytorch.loggers import WandbLogger
 
 import wandb
+from oxels.callbacks import ReportValidationLoss, ShowOxels
 from oxels.models import ImageNetModel
+
 
 
 def objective(trial: optuna.Trial):
@@ -14,15 +15,14 @@ def objective(trial: optuna.Trial):
 
     total_steps = 300_000
     trial_steps = 10_000
-    effective_batch_size = 256
     image_size = 64
     num_nodes = 16
-    num_devices = torch.cuda.device_count()
-    batch_size = effective_batch_size // num_devices
-    learning_rate = trial.suggest_float("learning_rate", 1e-4, 5e-3, log=True)
-    weight_decay = trial.suggest_float("weight_decay", 1e-4, 1e-3, log=True)
+    train_batch_size = 12
+    val_batch_size = 24
+    learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
+    weight_decay = 1e-4
 
-    num_stages = trial.suggest_int("num_stages", 4, 4)
+    num_stages = trial.suggest_int("num_stages", 4, 6)
     num_oxels = trial.suggest_int("num_oxels", 16, 64, step=8)
     base_channels = trial.suggest_int("base_channels", max(16, num_oxels), 64, step=8)
 
@@ -47,7 +47,7 @@ def objective(trial: optuna.Trial):
     ]
 
     dropout_stages = [-2, -1]
-    dropout = trial.suggest_float("dropout", 0.1, 0.2, step=0.05)
+    dropout = 0.1
 
     attention_stages = [stage for stage in range(4, num_stages)]
 
@@ -63,7 +63,8 @@ def objective(trial: optuna.Trial):
         lr_div_factor=25.0,
         lr_final_div_factor=1e4,
         total_steps=total_steps,
-        batch_size=batch_size,
+        train_batch_size=train_batch_size,
+        val_batch_size=val_batch_size,
         image_size=image_size,
     )
 
@@ -73,12 +74,16 @@ def objective(trial: optuna.Trial):
         max_steps=trial_steps,
         accelerator="gpu",
         strategy="ddp",
-        devices=num_devices,
+        devices=-1,
         precision="16-mixed",
         num_nodes=num_nodes,
     )
 
     model = ImageNetModel(**model_config)
+
+    with torch.device("cpu"):
+        validation_images = [model.val_dataloader().dataset.dataset[i] for i in range(4)]
+        validation_images = torch.stack(validation_images)
 
     num_parameters = sum(p.numel() for p in model.parameters())
 
@@ -105,12 +110,14 @@ def objective(trial: optuna.Trial):
         **trainer_config,
         callbacks=[
             callbacks.LearningRateMonitor(logging_interval="step"),
-            callbacks.ModelCheckpoint(
-                monitor="validation/loss",
-                mode="min",
-                save_top_k=1,
-                filename="best_model",
-            ),
+#            callbacks.ModelCheckpoint(
+#                monitor="validation/loss",
+#                mode="min",
+#                save_top_k=1,
+#                filename="best_model",
+#            ),
+            ReportValidationLoss(trial),
+            ShowOxels(images=validation_images),
         ],
         logger=logger,
     )
@@ -126,5 +133,8 @@ def objective(trial: optuna.Trial):
     return metrics["validation/loss"]
 
 
+pruner = optuna.pruners.HyperbandPruner()
+pruner = optuna.pruners.PatientPruner(pruner, patience=128, min_delta=1e-3)
+
 study = optuna.create_study(direction="minimize")
-study.optimize(objective, n_trials=30, catch=RuntimeError)
+study.optimize(objective, n_trials=30, catch=RuntimeError, pruner=pruner)
