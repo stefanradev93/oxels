@@ -1,4 +1,3 @@
-
 from collections.abc import Sequence
 import os
 
@@ -12,7 +11,25 @@ from .base_model import BaseModel
 
 
 class ImageNetModel(BaseModel):
-    def __init__(self, *, stage_channels: Sequence[int] = (32, 64, 128, 256), num_res_blocks: Sequence[int] = (2, 2, 2, 4), num_oxels: int = 64, num_norm_groups: int = 8, learning_rate: float = 1e-3, weight_decay: float = 0.004, dropout_stages: Sequence[int], dropout: float = 0.1, attention_stages: Sequence[int], lr_div_factor: float = 25.0, lr_final_div_factor: float = 1e4, total_steps: int, batch_size: int, image_size: int = 256):
+    def __init__(
+        self,
+        *,
+        stage_channels: Sequence[int] = (32, 64, 128, 256),
+        num_res_blocks: Sequence[int] = (2, 2, 2, 4),
+        num_oxels: int = 64,
+        num_norm_groups: int = 8,
+        learning_rate: float = 1e-3,
+        weight_decay: float = 0.004,
+        dropout_stages: Sequence[int],
+        dropout: float = 0.1,
+        attention_stages: Sequence[int],
+        lr_div_factor: float = 25.0,
+        lr_final_div_factor: float = 1e4,
+        total_steps: int,
+        train_batch_size: int,
+        val_batch_size: int,
+        image_size: int = 256,
+    ):
         num_stages = len(stage_channels)
         has_attention = [False] * num_stages
         for stage in attention_stages:
@@ -53,7 +70,14 @@ class ImageNetModel(BaseModel):
 
         dataset = ImageNet(split="train", transform=transform)
 
-        return DataLoader(dataset, batch_size=self.hparams.batch_size, shuffle=True, pin_memory=True, num_workers=len(os.sched_getaffinity(0)))
+        return DataLoader(
+            dataset,
+            batch_size=self.hparams.train_batch_size,
+            shuffle=True,
+            pin_memory=True,
+            num_workers=len(os.sched_getaffinity(0)),
+            drop_last=True,
+        )
 
     def val_dataloader(self):
         if self.hparams.image_size != 256:
@@ -63,4 +87,11 @@ class ImageNetModel(BaseModel):
 
         dataset = ImageNet(split="val", transform=transform)
 
-        return DataLoader(dataset, batch_size=self.hparams.batch_size, shuffle=False, pin_memory=True, num_workers=len(os.sched_getaffinity(0)))
+        return DataLoader(
+            dataset,
+            batch_size=self.hparams.val_batch_size,
+            shuffle=False,
+            pin_memory=True,
+            num_workers=len(os.sched_getaffinity(0)),
+            drop_last=False,
+        )
