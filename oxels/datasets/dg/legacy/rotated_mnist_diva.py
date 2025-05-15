@@ -291,7 +291,7 @@ def get_dataloader_rmnist_diva(seed=1, test_env=0, extend_dim=False):
     ys = torch.cat(ys)
     es = torch.cat(es)
 
-    xs_mean, xs_std = xs.mean(0), xs.std(0)
+    xs_mean, _xs_std = xs.mean(0), xs.std(0)
     xs = xs - xs_mean  # / xs_std
 
     xs_test = torch.cat(xs_test)

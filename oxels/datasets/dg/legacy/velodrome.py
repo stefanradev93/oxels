@@ -44,8 +44,7 @@ class VelodromeDataset(Dataset):
         root = pathlib.Path(self.root) / "velodrome"
 
         for domain in self.all_domains:
-            domain_name = self.domain_map[domain]
-            pattern = f"{domain_name}_.."
+            self.domain_map[domain]
 
             domain_data = pd.read_csv(domain_path / "data.csv")
             domain_data["domain"] = domain
