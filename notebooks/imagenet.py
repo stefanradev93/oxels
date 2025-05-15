@@ -9,7 +9,6 @@ from oxels.callbacks import ReportValidationLoss, ShowOxels
 from oxels.models import ImageNetModel
 
 
-
 def objective(trial: optuna.Trial):
     torch.set_float32_matmul_precision("medium")
 
@@ -110,12 +109,12 @@ def objective(trial: optuna.Trial):
         **trainer_config,
         callbacks=[
             callbacks.LearningRateMonitor(logging_interval="step"),
-#            callbacks.ModelCheckpoint(
-#                monitor="validation/loss",
-#                mode="min",
-#                save_top_k=1,
-#                filename="best_model",
-#            ),
+            #            callbacks.ModelCheckpoint(
+            #                monitor="validation/loss",
+            #                mode="min",
+            #                save_top_k=1,
+            #                filename="best_model",
+            #            ),
             ReportValidationLoss(trial),
             ShowOxels(images=validation_images),
         ],

@@ -3,7 +3,6 @@ import torch
 import wandb
 
 
-
 class ShowOxels(L.Callback):
     def __init__(self, images: torch.Tensor, num_oxels=8):
         super().__init__()
@@ -13,7 +12,7 @@ class ShowOxels(L.Callback):
     def on_validation_epoch_end(self, trainer, pl_module):
         # (batch_size, num_oxels, height, width)
         oxels = pl_module(self.images.to(pl_module.device))
-        oxels = oxels[:, :self.num_oxels]
+        oxels = oxels[:, : self.num_oxels]
 
         batch_size, channels, height, width = oxels.shape
 

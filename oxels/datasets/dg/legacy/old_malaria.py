@@ -195,9 +195,7 @@ def create_malaria_dataloader(batch_size, transform=True, test_env=0, seed=0):
 
         # sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, batch_size)
         # train_loader_aug= DataLoader(CustomTensorDataset(tensors=(xs, ys, es), transform=aug_transform), batch_size=batch_size, shuffle=True, num_workers=workers)
-        DataLoader(
-            TensorDataset(xs, ys, es), batch_size=batch_size, shuffle=True, num_workers=workers
-        )
+        DataLoader(TensorDataset(xs, ys, es), batch_size=batch_size, shuffle=True, num_workers=workers)
         # train_loader_aug= DataLoader(CustomTensorDataset(tensors=(xs, ys, es), transform=aug_transform), batch_size=batch_size, sampler=sampler,  num_workers=workers)
 
     else:

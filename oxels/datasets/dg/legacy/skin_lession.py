@@ -46,7 +46,6 @@ class ISICDataset(Dataset):
 
 
 def create_skin_dataset(batch_size):
-
     pd.read_csv("/home/tarkus/Desktop/WILDS/data/skin_bias/debiasing-skin/trap-sets/isic_annotated_train1.csv")
 
     data_transforms = transforms.Compose([transforms.Resize([256, 256]), transforms.ToTensor()])  # ,

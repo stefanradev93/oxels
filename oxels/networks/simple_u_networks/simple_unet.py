@@ -169,21 +169,20 @@ if __name__ == "__main__":
     import torch.nn.functional as F
 
     # Sanity test
-    b_ch = 64
+    b_ch = 16
     simple_diffusion_512 = {
         "height": 256,
         "width": 256,
         "in_channels": 3,
-        "out_channels": 32,
-        "channels_of_stage": [1 * b_ch, 2 * b_ch, 2 * b_ch, 4 * b_ch, 4 * b_ch],
-        "num_res_blocks": [2, 2, 4, 4, 4],
-        "residual_dropout": [0.1] * 5,
-        "has_attention": [False, False, False, False, True],
+        "out_channels": b_ch,
+        "channels_of_stage": [1 * b_ch, 2 * b_ch, 4 * b_ch, 4 * b_ch, 8 * b_ch, 8 * b_ch],
+        "num_res_blocks": [1, 2, 4, 6, 8, 8],
+        "residual_dropout": [0.1] * 6,
+        "has_attention": [False, False, False, False, True, True],
         "num_heads": 4,
         "norm_groups": 8,
     }
     config = simple_diffusion_512
-    b_ch = 64
     model = SimpleUNet(
         height=config["height"],
         width=config["width"],
@@ -203,7 +202,7 @@ if __name__ == "__main__":
     print(f"Number of parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
     model.train()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    bs = 12
+    bs = 24
     for i in tqdm(range(100)):
         optimizer.zero_grad()
         x = torch.randn(bs, config["in_channels"], config["height"], config["width"]).to(device)
