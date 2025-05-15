@@ -3,14 +3,10 @@ from pathlib import Path
 
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageNet as ImageNetVision
-from torchvision.datasets.utils import calculate_md5, check_integrity, download_url
+from torchvision.datasets.utils import check_integrity, download_url
 
 from oxels.transforms import PerspectiveTransform
-from oxels.utils import md5
-import requests
-import gzip
-import tarfile
-import shutil
+
 
 import fiftyone.zoo
 
