@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class SimpleNorm(nn.Module):
     """
     PyTorch SimpleNorm.
@@ -26,28 +27,26 @@ class SimpleNorm(nn.Module):
         scale (bool):      Learnable scale (True=add weight).
         eps (float):       Small epsilon for numerical stability.
     """
-    def __init__(self,
-                 channel_dim: int,
-                 method: str = 'group',
-                 groups: int = 8,
-                 center: bool = True,
-                 scale: bool = True,
-                 eps: float = 1e-5):
+
+    def __init__(
+        self,
+        channel_dim: int,
+        method: str = "group",
+        groups: int = 8,
+        center: bool = True,
+        scale: bool = True,
+        eps: float = 1e-5,
+    ):
         super().__init__()
-        if method == 'group':
+        if method == "group":
             ng = groups
-        elif method == 'layer':
+        elif method == "layer":
             ng = 1
         else:
             raise ValueError(f"Unknown method: {method!r}")
 
         # affine covers both weight (scale) and bias (center)
-        self.norm = nn.GroupNorm(
-            num_groups=ng,
-            num_channels=channel_dim,
-            eps=eps,
-            affine=(center or scale)
-        )
+        self.norm = nn.GroupNorm(num_groups=ng, num_channels=channel_dim, eps=eps, affine=(center or scale))
 
         # disable weight / bias gradients if requested
         if not scale:
@@ -68,7 +67,7 @@ if __name__ == "__main__":
     # Simple executable test
     batch, channels, height, width = 2, 16, 32, 32
     x = torch.randn(batch, channels, height, width)
-    for method in ['group', 'layer']:
+    for method in ["group", "layer"]:
         norm = SimpleNorm(channel_dim=channels, method=method, groups=4)
         y = norm(x)
         print(f"method={method}, output shape: {y.shape}")

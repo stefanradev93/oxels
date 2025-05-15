@@ -22,6 +22,7 @@ class SimpleUNet(nn.Module):
         skipping uses collected skips
       - Final SimpleNorm -> SiLU -> 3×3 Conv2d(zero-init)
     """
+
     def __init__(
         self,
         height: int,
@@ -33,7 +34,7 @@ class SimpleUNet(nn.Module):
         residual_dropout: Sequence[float] = None,
         has_attention: Sequence[bool] = None,
         num_heads: int = 4,
-        norm_groups: int = 8
+        norm_groups: int = 8,
     ):
         super().__init__()
         L = len(channels_of_stage)
@@ -45,9 +46,7 @@ class SimpleUNet(nn.Module):
             has_attention = [False] * L
 
         # Initial conv
-        self.initial_conv = nn.Conv2d(
-            in_channels, channels_of_stage[0], kernel_size=3, padding=1, bias=True
-        )
+        self.initial_conv = nn.Conv2d(in_channels, channels_of_stage[0], kernel_size=3, padding=1, bias=True)
         nn.init.xavier_uniform_(self.initial_conv.weight, gain=1.0)
         nn.init.zeros_(self.initial_conv.bias)
 
@@ -60,30 +59,30 @@ class SimpleUNet(nn.Module):
             blocks = nn.ModuleList()
             attns = nn.ModuleList()
             for _ in range(num_res_blocks[i]):
-                blocks.append(SimpleResidualBlock(
-                    out_channels=channels_of_stage[i],
-                    activation=nn.SiLU,
-                    has_skip=False,
-                    dropout=residual_dropout[i],
-                ))
-                attns.append(SimpleAttention(
-                    num_heads=num_heads,
-                    channel_dim=channels_of_stage[i]
-                ) if has_attention[i] else nn.Identity())
+                blocks.append(
+                    SimpleResidualBlock(
+                        out_channels=channels_of_stage[i],
+                        activation=nn.SiLU,
+                        has_skip=False,
+                        dropout=residual_dropout[i],
+                    )
+                )
+                attns.append(
+                    SimpleAttention(num_heads=num_heads, channel_dim=channels_of_stage[i])
+                    if has_attention[i]
+                    else nn.Identity()
+                )
             self.res_down.append(blocks)
             self.attn_down.append(attns)
             # Downsample
-            out_ch = channels_of_stage[i+1] if i < L-1 else channels_of_stage[-1]
+            out_ch = channels_of_stage[i + 1] if i < L - 1 else channels_of_stage[-1]
             self.down_ops.append(SimpleDownSample(channels_of_stage[i], out_ch))
 
         # Middle: one Res, one attention, one Res
         self.mid_res1 = SimpleResidualBlock(
             out_channels=channels_of_stage[-1], activation=nn.SiLU, has_skip=False, dropout=residual_dropout[-1]
         )
-        self.mid_attn = SimpleAttention(
-            num_heads=num_heads,
-            channel_dim=channels_of_stage[-1]
-        )
+        self.mid_attn = SimpleAttention(num_heads=num_heads, channel_dim=channels_of_stage[-1])
         self.mid_res2 = SimpleResidualBlock(
             out_channels=channels_of_stage[-1], activation=nn.SiLU, has_skip=False, dropout=residual_dropout[-1]
         )
@@ -97,29 +96,32 @@ class SimpleUNet(nn.Module):
             blocks = nn.ModuleList()
             attns = nn.ModuleList()
             for j in range(num_res_blocks[i] + 1):
-                blocks.append(SimpleResidualBlock(
-                    out_channels=channels_of_stage[i],
-                    activation=nn.SiLU,
-                    has_skip=(j < num_res_blocks[i]),
-                    dropout=residual_dropout[i],
-                ))
-                attns.append(SimpleAttention(
-                    num_heads=num_heads,
-                    channel_dim=channels_of_stage[i]
-                ) if has_attention[i] else nn.Identity())
+                blocks.append(
+                    SimpleResidualBlock(
+                        out_channels=channels_of_stage[i],
+                        activation=nn.SiLU,
+                        has_skip=(j < num_res_blocks[i]),
+                        dropout=residual_dropout[i],
+                    )
+                )
+                attns.append(
+                    SimpleAttention(num_heads=num_heads, channel_dim=channels_of_stage[i])
+                    if has_attention[i]
+                    else nn.Identity()
+                )
             self.res_up.append(blocks)
             self.attn_up.append(attns)
             # Upsample
-            in_ch = channels_of_stage[i+1] if i < L-1 else channels_of_stage[-1]
+            in_ch = channels_of_stage[i + 1] if i < L - 1 else channels_of_stage[-1]
             self.up_ops.append(SimpleUpSample(in_ch, channels_of_stage[i]))
 
         # Final projection
         self.norm_out = SimpleNorm(
             channel_dim=channels_of_stage[0],
-            method='group',
+            method="group",
             groups=min(norm_groups, channels_of_stage[0]),
             center=True,
-            scale=True
+            scale=True,
         )
         self.act_out = nn.SiLU()
         self.conv_out = nn.Conv2d(channels_of_stage[0], out_channels, kernel_size=3, padding=1, bias=True)
@@ -144,19 +146,22 @@ class SimpleUNet(nn.Module):
         h = self.mid_attn(h)
         h = self.mid_res2(h)
         # Up path
-        #skips = list(reversed(skips))
+        # skips = list(reversed(skips))
         for i in range(len(self.res_up)):
             blocks = self.res_up[i]
             attns = self.attn_up[i]
             h = self.up_ops[i](h)
             for j, (blk, att) in enumerate(zip(blocks, attns)):
-                skip_h = skips.pop() if j < len(blocks) - 1 else None  # UpBlocks are one more and last one doesnt have skip.
+                skip_h = (
+                    skips.pop() if j < len(blocks) - 1 else None
+                )  # UpBlocks are one more and last one doesnt have skip.
                 h = blk(h, skip_h=skip_h)
                 h = att(h)
         # Final
         h = self.norm_out(h)
         h = self.act_out(h)
         return self.conv_out(h)
+
 
 if __name__ == "__main__":
     # Sanity test
@@ -170,23 +175,27 @@ if __name__ == "__main__":
         "width": 256,
         "in_channels": 3,
         "out_channels": 32,
-        "channels_of_stage": [1 * b_ch, 2*b_ch, 2*b_ch, 4 * b_ch, 4 * b_ch],
+        "channels_of_stage": [1 * b_ch, 2 * b_ch, 2 * b_ch, 4 * b_ch, 4 * b_ch],
         "num_res_blocks": [2, 2, 4, 4, 4],
-        "residual_dropout": [0.1]*5,
+        "residual_dropout": [0.1] * 5,
         "has_attention": [False, False, False, False, True],
         "num_heads": 4,
-        "norm_groups": 8
+        "norm_groups": 8,
     }
     config = simple_diffusion_512
     b_ch = 64
-    model = SimpleUNet(height=config["height"], width=config["width"], in_channels=config["in_channels"], out_channels=config["out_channels"],
-                       channels_of_stage=config["channels_of_stage"],
-                       num_res_blocks=config["num_res_blocks"],
-                       residual_dropout=config["residual_dropout"],
-                       has_attention=config["has_attention"],
-                       num_heads=config["num_heads"],
-                       norm_groups=config["norm_groups"]
-                       )
+    model = SimpleUNet(
+        height=config["height"],
+        width=config["width"],
+        in_channels=config["in_channels"],
+        out_channels=config["out_channels"],
+        channels_of_stage=config["channels_of_stage"],
+        num_res_blocks=config["num_res_blocks"],
+        residual_dropout=config["residual_dropout"],
+        has_attention=config["has_attention"],
+        num_heads=config["num_heads"],
+        norm_groups=config["norm_groups"],
+    )
     print(model)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -228,7 +237,9 @@ if __name__ == "__main__":
         h = up(h)
         print(f"After up {i}:", h.shape)
         for j, (blk, att) in enumerate(zip(blocks, atts)):
-            skip_h = skips.pop() if j < len(blocks) - 1 else None  # UpBlocks are one more and last one doesnt have skip.
+            skip_h = (
+                skips.pop() if j < len(blocks) - 1 else None
+            )  # UpBlocks are one more and last one doesnt have skip.
             h = blk(h, skip_h=skip_h)
             h = att(h)
             print(f"Up level {i} block {j}:", h.shape)

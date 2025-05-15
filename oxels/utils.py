@@ -5,7 +5,7 @@ import hashlib
 from pathlib import Path
 
 
-def md5(filepath, chunk_size=1024 ** 2):
+def md5(filepath, chunk_size=1024**2):
     """Returns the MD5 hash of a given file"""
     filepath = Path(filepath)
     if not filepath.is_file():

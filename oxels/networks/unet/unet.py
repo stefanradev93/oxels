@@ -44,7 +44,14 @@ class UNet(nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         # avoid bottlenecks
-        hidden_features = max(in_features, out_features, down_features[0][0], down_features[0][-1], up_features[-1][-1], up_features[-1][0])
+        hidden_features = max(
+            in_features,
+            out_features,
+            down_features[0][0],
+            down_features[0][-1],
+            up_features[-1][-1],
+            up_features[-1][0],
+        )
         self.hidden_features = hidden_features
 
         self.encoder = down_type(

@@ -1,13 +1,12 @@
-import math
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from .simple_downsample import SimpleDownSample
 from .simple_upsample import SimpleUpSample
 from .simple_residual_block import SimpleResidualBlock
 from .simple_transformer_block import SimpleTransformerBlock
 from .simple_norm import SimpleNorm
+
 
 class SimpleResidualUViT(nn.Module):
     """
@@ -32,6 +31,7 @@ class SimpleResidualUViT(nn.Module):
       - for each res_up_block: h = SimpleResidualBlock(has_skip=False)(h)
     Final: SimpleNorm -> SiLU -> Conv2d(zero-init)
     """
+
     def __init__(
         self,
         height: int,
@@ -46,7 +46,7 @@ class SimpleResidualUViT(nn.Module):
         num_heads: int = 4,
         transformer_expansion: int = 4,
         transformer_dropout: float = 0.0,
-        norm_groups: int = 8
+        norm_groups: int = 8,
     ):
         super().__init__()
         L = len(channels_of_stage)
@@ -60,9 +60,7 @@ class SimpleResidualUViT(nn.Module):
             residual_dropout = [0.0] * L
 
         # Initial conv
-        self.initial_emb = nn.Conv2d(
-            in_channels, channels_of_stage[0], kernel_size=3, padding=1, bias=True
-        )
+        self.initial_emb = nn.Conv2d(in_channels, channels_of_stage[0], kernel_size=3, padding=1, bias=True)
         nn.init.xavier_uniform_(self.initial_emb.weight, gain=1.0)
         nn.init.zeros_(self.initial_emb.bias)
 
@@ -72,56 +70,63 @@ class SimpleResidualUViT(nn.Module):
         for i in range(L):
             blocks = nn.ModuleList()
             for _ in range(num_res_down_blocks[i]):
-                blocks.append(SimpleResidualBlock(
-                    out_channels=channels_of_stage[i],
-                    activation=nn.SiLU,
-                    has_skip=False,
-                    dropout=residual_dropout[i]
-                ))
+                blocks.append(
+                    SimpleResidualBlock(
+                        out_channels=channels_of_stage[i],
+                        activation=nn.SiLU,
+                        has_skip=False,
+                        dropout=residual_dropout[i],
+                    )
+                )
             self.res_down.append(blocks)
-            out_ch = channels_of_stage[i+1] if i < L-1 else channels_of_stage[-1]
+            out_ch = channels_of_stage[i + 1] if i < L - 1 else channels_of_stage[-1]
             self.down_ops.append(SimpleDownSample(channels_of_stage[i], out_ch))
 
         # Positional embedding
-        mid_h = height // (2 ** L)
-        mid_w = width  // (2 ** L)
+        mid_h = height // (2**L)
+        mid_w = width // (2**L)
         self.pos_emb = nn.Parameter(torch.randn(1, channels_of_stage[-1], mid_h, mid_w) * 0.01)
 
         # Transformer blocks
-        self.transformers = nn.ModuleList([
-            SimpleTransformerBlock(
-                channel_dim=channels_of_stage[-1],
-                expansion=transformer_expansion,
-                num_heads=num_heads,
-                dropout=transformer_dropout
-            ) for _ in range(num_transformer_blocks)
-        ])
+        self.transformers = nn.ModuleList(
+            [
+                SimpleTransformerBlock(
+                    channel_dim=channels_of_stage[-1],
+                    expansion=transformer_expansion,
+                    num_heads=num_heads,
+                    dropout=transformer_dropout,
+                )
+                for _ in range(num_transformer_blocks)
+            ]
+        )
 
         # Up path
         self.up_ops = nn.ModuleList()
         self.res_up = nn.ModuleList()
         for i in reversed(range(L)):
-            in_ch = channels_of_stage[i+1] if i < L-1 else channels_of_stage[-1]
+            in_ch = channels_of_stage[i + 1] if i < L - 1 else channels_of_stage[-1]
             self.up_ops.append(SimpleUpSample(in_ch, channels_of_stage[i]))
             blocks = nn.ModuleList()
             for _ in range(num_res_up_blocks[i]):
-                blocks.append(SimpleResidualBlock(
-                    out_channels=channels_of_stage[i],
-                    activation=nn.SiLU,
-                    has_skip=False,
-                    dropout=residual_dropout[i]
-                ))
+                blocks.append(
+                    SimpleResidualBlock(
+                        out_channels=channels_of_stage[i],
+                        activation=nn.SiLU,
+                        has_skip=False,
+                        dropout=residual_dropout[i],
+                    )
+                )
             self.res_up.append(blocks)
 
         # Final projection
         self.norm_out = SimpleNorm(
             channel_dim=channels_of_stage[0],
-            method='group',
+            method="group",
             groups=min(norm_groups, channels_of_stage[0]),
             center=True,
-            scale=True
+            scale=True,
         )
-        self.act_out  = nn.SiLU()
+        self.act_out = nn.SiLU()
         self.conv_out = nn.Conv2d(channels_of_stage[0], out_channels, kernel_size=3, padding=1, bias=True)
         nn.init.zeros_(self.conv_out.weight)
         nn.init.zeros_(self.conv_out.bias)
@@ -160,8 +165,9 @@ class SimpleResidualUViT(nn.Module):
 
 if __name__ == "__main__":
     # Sanity test & shape overview
-    model = SimpleResidualUViT(height=64, width=64, channels_of_stage=[16,32,64],
-                               num_res_down_blocks=[2,3,4], num_res_up_blocks=[6,4,3])
+    model = SimpleResidualUViT(
+        height=64, width=64, channels_of_stage=[16, 32, 64], num_res_down_blocks=[2, 3, 4], num_res_up_blocks=[6, 4, 3]
+    )
     print(model)
     x = torch.randn(1, 16, 64, 64)
     print("Input:", x.shape)

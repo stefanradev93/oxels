@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .simple_norm import SimpleNorm
 
+
 class SimpleAttention(nn.Module):
     """
     Multi-head self-attention for (B, C, H, W) inputs, using SimpleNorm.
@@ -37,6 +38,7 @@ class SimpleAttention(nn.Module):
       9) Reshape to (B, C, H, W)
     No residual connection in this block.
     """
+
     def __init__(self, num_heads: int, channel_dim: int):
         super(SimpleAttention, self).__init__()
         assert channel_dim % num_heads == 0, "channel_dim must be divisible by num_heads"
@@ -46,12 +48,7 @@ class SimpleAttention(nn.Module):
         self.head_dim = channel_dim // num_heads
 
         # 1) Normalize input x (no bias shift)
-        self.input_norm = SimpleNorm(
-            channel_dim,
-            method='layer',
-            center=False,
-            scale=True
-        )
+        self.input_norm = SimpleNorm(channel_dim, method="layer", center=False, scale=True)
 
         # 2) Linear projections for Q, K, V to C total dims
         self.q_proj = nn.Linear(channel_dim, channel_dim)
@@ -64,18 +61,8 @@ class SimpleAttention(nn.Module):
             nn.init.zeros_(proj.bias)
 
         # 4) Normalize Q and K (layer norm over head dim)
-        self.q_norm = SimpleNorm(
-            self.head_dim,
-            method='layer',
-            center=True,
-            scale=True
-        )
-        self.k_norm = SimpleNorm(
-            self.head_dim,
-            method='layer',
-            center=True,
-            scale=True
-        )
+        self.q_norm = SimpleNorm(self.head_dim, method="layer", center=True, scale=True)
+        self.k_norm = SimpleNorm(self.head_dim, method="layer", center=True, scale=True)
 
         # 8) Output projection back to C, zero initialized
         self.out_proj = nn.Linear(channel_dim, channel_dim)
@@ -88,12 +75,12 @@ class SimpleAttention(nn.Module):
         HW = H * W
 
         # 1) Flatten spatial dims and apply input norm
-        x_flat = x.view(B, C, HW)                   # (B, C, HW)
-        x_norm = self.input_norm(x_flat)            # (B, C, HW)
-        x_norm = x_norm.permute(0, 2, 1)            # (B, HW, C)
+        x_flat = x.view(B, C, HW)  # (B, C, HW)
+        x_norm = self.input_norm(x_flat)  # (B, C, HW)
+        x_norm = x_norm.permute(0, 2, 1)  # (B, HW, C)
 
         # 2) Project to Q, K, V
-        q = self.q_proj(x_norm)                     # (B, HW, C)
+        q = self.q_proj(x_norm)  # (B, HW, C)
         k = self.k_proj(x_norm)
         v = self.v_proj(x_norm)
 
@@ -103,29 +90,29 @@ class SimpleAttention(nn.Module):
         v = v.view(B, HW, self.num_heads, self.head_dim)
 
         # 4) Normalize Q, K
-        q_perm = q.permute(0, 3, 1, 2)            # (B, head_dim, HW, num_heads)
-        k_perm = k.permute(0, 3, 1, 2)            # (B, head_dim, HW, num_heads)
+        q_perm = q.permute(0, 3, 1, 2)  # (B, head_dim, HW, num_heads)
+        k_perm = k.permute(0, 3, 1, 2)  # (B, head_dim, HW, num_heads)
         q = self.q_norm(q_perm)
         k = self.k_norm(k_perm)
-        q = q.permute(0, 2, 3, 1)                  # (B, HW, num_heads, head_dim)
-        k = k.permute(0, 2, 3, 1)                  # (B, HW, num_heads, head_dim)
+        q = q.permute(0, 2, 3, 1)  # (B, HW, num_heads, head_dim)
+        k = k.permute(0, 2, 3, 1)  # (B, HW, num_heads, head_dim)
 
         # 5) Scale Q
-        q = q * (self.head_dim ** -0.5)
+        q = q * (self.head_dim**-0.5)
 
         # 6) Attention weights
-        weights = torch.einsum('bqhd,bkhd->bhqk', q, k)  # (B, heads, Q, K)
+        weights = torch.einsum("bqhd,bkhd->bhqk", q, k)  # (B, heads, Q, K)
         weights = F.softmax(weights, dim=-1)
 
         # 7) Weighted sum
-        attn_vals = torch.einsum('bhqk,bkhd->bqhd', weights, v)  # (B, HW, heads, head_dim)
+        attn_vals = torch.einsum("bhqk,bkhd->bqhd", weights, v)  # (B, HW, heads, head_dim)
 
         # 8) Merge heads and final projection
         attn_vals = attn_vals.reshape(B, HW, self.c_dim)  # (B, HW, C)
-        out = self.out_proj(attn_vals)                               # (B, HW, C)
+        out = self.out_proj(attn_vals)  # (B, HW, C)
 
         # 9) Reshape back to spatial
-        out = out.view(B, H, W, C).permute(0, 3, 1, 2)                # (B, C, H, W)
+        out = out.view(B, H, W, C).permute(0, 3, 1, 2)  # (B, C, H, W)
         return out
 
 

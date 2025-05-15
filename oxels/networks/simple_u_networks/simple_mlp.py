@@ -40,17 +40,16 @@ class SimpleMLPBlock(nn.Module):
       - `NormalizeWithBias` (center=True) also adds a learnable bias/shift.
       In attention blocks, we use both forms accordingly.
     """
-    def __init__(self,
-                 channel_dim: int,
-                 expansion: int = 4,
-                 dropout: float = 0.0,
-                 activation: ActivationType = nn.SiLU):
+
+    def __init__(
+        self, channel_dim: int, expansion: int = 4, dropout: float = 0.0, activation: ActivationType = nn.SiLU
+    ):
         super().__init__()
         # Normalize without bias (scale only)
-        self.norm       = SimpleNorm(channel_dim, method='layer', center=False, scale=True)
-        self.dense_up   = nn.Linear(channel_dim, channel_dim * expansion)
+        self.norm = SimpleNorm(channel_dim, method="layer", center=False, scale=True)
+        self.dense_up = nn.Linear(channel_dim, channel_dim * expansion)
         self.activation = activation()
-        self.dropout    = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
         self.dense_down = nn.Linear(channel_dim * expansion, channel_dim)
         nn.init.zeros_(self.dense_down.weight)
         nn.init.zeros_(self.dense_down.bias)
@@ -59,11 +58,11 @@ class SimpleMLPBlock(nn.Module):
         # x: (B, C, H, W)
         x = self.norm(x)
         # move channels to last dim for Linear
-        h = x.permute(0, 2, 3, 1)          # (B, H, W, C)
-        h = self.dense_up(h)               # (B, H, W, C*expansion)
+        h = x.permute(0, 2, 3, 1)  # (B, H, W, C)
+        h = self.dense_up(h)  # (B, H, W, C*expansion)
         h = self.activation(h)
         h = self.dropout(h)
-        h = self.dense_down(h)             # (B, H, W, C)
+        h = self.dense_down(h)  # (B, H, W, C)
         # back to (B, C, H, W)
         return h.permute(0, 3, 1, 2)
 

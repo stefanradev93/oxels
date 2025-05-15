@@ -9,7 +9,6 @@ from .simple_norm import SimpleNorm
 
 
 class SimpleUViT(nn.Module):
-
     DEFAULT_NUM_BLOCKS_PER_STAGE = 3
     """
     Plain U-ViT without time embeddings, using SimpleNorm for normalization.
@@ -21,6 +20,7 @@ class SimpleUViT(nn.Module):
       - Up path: upsampling followed by ResBlocks using collected skips
       - Final SimpleNorm -> SiLU -> 3×3 Conv2d (zero init)
     """
+
     def __init__(
         self,
         height: int,
@@ -34,7 +34,7 @@ class SimpleUViT(nn.Module):
         num_heads: int = 4,
         transformer_expansion: int = 4,
         transformer_dropout: float = 0.0,
-        norm_groups: int = 8
+        norm_groups: int = 8,
     ):
         super().__init__()
         L = len(channels_of_stage)
@@ -46,9 +46,7 @@ class SimpleUViT(nn.Module):
             residual_dropout = [0.0] * L
 
         # Initial conv: 3×3
-        self.initial_emb = nn.Conv2d(
-            in_channels, channels_of_stage[0], kernel_size=3, padding=1, bias=True
-        )
+        self.initial_emb = nn.Conv2d(in_channels, channels_of_stage[0], kernel_size=3, padding=1, bias=True)
         nn.init.xavier_uniform_(self.initial_emb.weight, gain=1.0)
         nn.init.zeros_(self.initial_emb.bias)
 
@@ -58,30 +56,35 @@ class SimpleUViT(nn.Module):
         for i in range(L):
             blocks = nn.ModuleList()
             for _ in range(num_res_blocks[i]):
-                blocks.append(SimpleResidualBlock(
-                    out_channels=channels_of_stage[i],
-                    activation=nn.SiLU,
-                    has_skip=False,
-                    dropout=residual_dropout[i]
-                ))
+                blocks.append(
+                    SimpleResidualBlock(
+                        out_channels=channels_of_stage[i],
+                        activation=nn.SiLU,
+                        has_skip=False,
+                        dropout=residual_dropout[i],
+                    )
+                )
             self.res_down.append(blocks)
             out_ch = channels_of_stage[i + 1] if i < L - 1 else channels_of_stage[-1]
             self.down_ops.append(SimpleDownSample(channels_of_stage[i], out_ch))
 
         # Positional embedding for middle
-        mid_h = height // (2 ** L)
-        mid_w = width  // (2 ** L)
+        mid_h = height // (2**L)
+        mid_w = width // (2**L)
         self.pos_emb = nn.Parameter(torch.randn(1, channels_of_stage[-1], mid_h, mid_w) * 0.01)
 
         # Transformer blocks (residual connections inside)
-        self.transformers = nn.ModuleList([
-            SimpleTransformerBlock(
-                channel_dim=channels_of_stage[-1],
-                expansion=transformer_expansion,
-                num_heads=num_heads,
-                dropout=transformer_dropout
-            ) for _ in range(num_transformer_blocks)
-        ])
+        self.transformers = nn.ModuleList(
+            [
+                SimpleTransformerBlock(
+                    channel_dim=channels_of_stage[-1],
+                    expansion=transformer_expansion,
+                    num_heads=num_heads,
+                    dropout=transformer_dropout,
+                )
+                for _ in range(num_transformer_blocks)
+            ]
+        )
 
         # Up path
         self.up_ops = nn.ModuleList()
@@ -91,23 +94,25 @@ class SimpleUViT(nn.Module):
             self.up_ops.append(SimpleUpSample(in_ch, channels_of_stage[i]))
             blocks = nn.ModuleList()
             for _ in range(num_res_blocks[i]):
-                blocks.append(SimpleResidualBlock(
-                    out_channels=channels_of_stage[i],
-                    activation=nn.SiLU,
-                    has_skip=True,
-                    dropout=residual_dropout[i]
-                ))
+                blocks.append(
+                    SimpleResidualBlock(
+                        out_channels=channels_of_stage[i],
+                        activation=nn.SiLU,
+                        has_skip=True,
+                        dropout=residual_dropout[i],
+                    )
+                )
             self.res_up.append(blocks)
 
         # Final projection: SimpleNorm -> SiLU -> zero-init Conv2d
         self.norm_out = SimpleNorm(
             channel_dim=channels_of_stage[0],
-            method='group',
+            method="group",
             groups=min(norm_groups, channels_of_stage[0]),
             center=True,
-            scale=True
+            scale=True,
         )
-        self.act_out  = nn.SiLU()
+        self.act_out = nn.SiLU()
         self.conv_out = nn.Conv2d(channels_of_stage[0], out_channels, kernel_size=3, padding=1, bias=True)
         nn.init.zeros_(self.conv_out.weight)
         nn.init.zeros_(self.conv_out.bias)
@@ -151,26 +156,30 @@ if __name__ == "__main__":
         "width": 512,
         "in_channels": 3,
         "out_channels": 16,
-        "channels_of_stage": [1*b_ch, 2*b_ch, 4*b_ch],
+        "channels_of_stage": [1 * b_ch, 2 * b_ch, 4 * b_ch],
         "num_res_blocks": [2, 2, 2],
         "residual_dropout": [0.1, 0.1, 0.1],
         "num_transformer_blocks": 24,
         "num_heads": 4,
         "transformer_expansion": 4,
         "transformer_dropout": 0.2,
-        "norm_groups": 8
+        "norm_groups": 8,
     }
     config = simple_diffusion_512
-    model = SimpleUViT(height=config["height"], width=config["width"], in_channels=config["in_channels"], out_channels=config["out_channels"],
-                       channels_of_stage=config["channels_of_stage"],
-                       num_res_blocks=config["num_res_blocks"],
-                       residual_dropout=config["residual_dropout"],
-                       num_transformer_blocks=config["num_transformer_blocks"],
-                       num_heads=config["num_heads"],
-                       transformer_expansion=config["transformer_expansion"],
-                       transformer_dropout=config["transformer_dropout"],
-                       norm_groups=config["norm_groups"]
-                       )
+    model = SimpleUViT(
+        height=config["height"],
+        width=config["width"],
+        in_channels=config["in_channels"],
+        out_channels=config["out_channels"],
+        channels_of_stage=config["channels_of_stage"],
+        num_res_blocks=config["num_res_blocks"],
+        residual_dropout=config["residual_dropout"],
+        num_transformer_blocks=config["num_transformer_blocks"],
+        num_heads=config["num_heads"],
+        transformer_expansion=config["transformer_expansion"],
+        transformer_dropout=config["transformer_dropout"],
+        norm_groups=config["norm_groups"],
+    )
     print(model)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)

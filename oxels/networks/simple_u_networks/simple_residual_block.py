@@ -26,66 +26,40 @@ class SimpleResidualBlock(nn.Module):
 
       return x + h
     """
-    def __init__(self,
-                 out_channels: int,
-                 activation: ActivationType=nn.SiLU,
-                 has_skip: bool = False,
-                 dropout: float = 0.0):
+
+    def __init__(
+        self, out_channels: int, activation: ActivationType = nn.SiLU, has_skip: bool = False, dropout: float = 0.0
+    ):
         super(SimpleResidualBlock, self).__init__()
         self.out_channels = out_channels
         self.has_skip = has_skip
         self.activation = activation()
 
         # NormalizeWithBias for input
-        self.norm_in = SimpleNorm(
-            channel_dim=out_channels,
-            method='layer',
-            center=True,
-            scale=True
-        )
+        self.norm_in = SimpleNorm(channel_dim=out_channels, method="layer", center=True, scale=True)
         # Optional skip normalization with bias
         if has_skip:
-            self.norm_skip = SimpleNorm(
-                channel_dim=out_channels,
-                method='layer',
-                center=True,
-                scale=True
-            )
+            self.norm_skip = SimpleNorm(channel_dim=out_channels, method="layer", center=True, scale=True)
         # First convolution: Xavier uniform init
         self.conv_in = nn.Conv2d(
-            in_channels=out_channels,
-            out_channels=out_channels,
-            kernel_size=3,
-            padding=1,
-            bias=True
+            in_channels=out_channels, out_channels=out_channels, kernel_size=3, padding=1, bias=True
         )
         nn.init.xavier_uniform_(self.conv_in.weight, gain=1.0)
         nn.init.zeros_(self.conv_in.bias)
 
         # NormalizeWithBias after first conv
-        self.norm_out = SimpleNorm(
-            channel_dim=out_channels,
-            method='layer',
-            center=True,
-            scale=True
-        )
+        self.norm_out = SimpleNorm(channel_dim=out_channels, method="layer", center=True, scale=True)
         # Dropout between activations
         self.dropout = nn.Dropout(dropout)
 
         # Final convolution with zero initialization
         self.conv_out = nn.Conv2d(
-            in_channels=out_channels,
-            out_channels=out_channels,
-            kernel_size=3,
-            padding=1,
-            bias=True
+            in_channels=out_channels, out_channels=out_channels, kernel_size=3, padding=1, bias=True
         )
         nn.init.zeros_(self.conv_out.weight)
         nn.init.zeros_(self.conv_out.bias)
 
-    def forward(self,
-                x: torch.Tensor,
-                skip_h: torch.Tensor = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, skip_h: torch.Tensor = None) -> torch.Tensor:
         # x, skip_h: (B, C, H, W)
         h = self.norm_in(x)
         if self.has_skip:
