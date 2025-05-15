@@ -5,13 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "deeplake>=4.2.4",
-    "diffusers>=0.33.1",
-    "fiftyone>=1.5.2",
     "gdown>=5.2.0",
     "jupyter>=1.1.1",
     "jupyterlab>=4.4.2",
-    "lightning>=2.5.1.post0",
     "matplotlib>=3.10.3",
     "numpy>=2.2.5",
     "opencv-python>=4.11.0.86",
@@ -21,14 +17,19 @@ dependencies = [
     "scikit-learn>=1.6.1",
     "scipy>=1.15.3",
     "seaborn>=0.13.2",
-    "torch>=2.7; sys_platform != 'darwin'",
-    "torch==2.2.2; sys_platform == 'darwin'",
-    "torchvision>=0.22.0; sys_platform != 'darwin'",
-    "torchvision>=0.17.2; sys_platform == 'darwin'",
     "tqdm>=4.67.1",
-    "wandb[media]>=0.19.11",
-    "wilds>=2.0.0",
     "pytest>=8.3.5",
+    "torch==2.6",
+    "torchvision>=0.21.0",
+    "lightning>=2.5.1.post0",
+    "deeplake>=4.2.4",
+    "diffusers>=0.33.1",
+    "fiftyone",
+    "wandb>=0.19.11",
+    "wilds>=2.0.0",
+    "ruff>=0.11.9",
+    "pre-commit>=4.2.0",
+    "uv>=0.7.3",
 ]
 
 [tool.ruff]
