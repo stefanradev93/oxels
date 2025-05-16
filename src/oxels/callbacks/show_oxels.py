@@ -25,4 +25,4 @@ class ShowOxels(L.Callback):
 
         oxels = wandb.Image(oxels, caption="Latent Space Visualization")
 
-        trainer.logger.experiment.log({"oxels": [oxels]}, step=trainer.global_step)
+        trainer.logger.experiment.log({"oxels": [oxels]})
