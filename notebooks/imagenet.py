@@ -135,5 +135,5 @@ def objective(trial: optuna.Trial):
 pruner = optuna.pruners.HyperbandPruner()
 pruner = optuna.pruners.PatientPruner(pruner, patience=128, min_delta=1e-3)
 
-study = optuna.create_study(direction="minimize", pruner=pruner)
+study = optuna.create_study(direction="minimize", pruner=pruner, storage="sqlite:///imagenet.db", load_if_exists=True)
 study.optimize(objective, n_trials=30, catch=RuntimeError)
