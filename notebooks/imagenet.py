@@ -121,7 +121,12 @@ def objective(trial: optuna.Trial):
         logger=logger,
     )
 
-    trainer.fit(model)
+    try:
+        trainer.fit(model)
+    except optuna.TrialPruned:
+        # clean up and reraise
+        run.finish()
+        raise
 
     metrics = trainer.validate(model)[0]
 
