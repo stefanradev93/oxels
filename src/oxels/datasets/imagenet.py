@@ -19,7 +19,7 @@ class ImageNet(Dataset):
         "ILSVRC2012_img_val.tar": "29b22e2961454d5413ddabcf34fc5622",
     }
 
-    default_path = Path(__file__).parents[2] / "datasets"
+    default_path = Path(__file__).parents[3] / "datasets"
     default_path = default_path.resolve()
 
     def __init__(

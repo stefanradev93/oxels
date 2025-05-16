@@ -16,12 +16,16 @@ class DGPerspectiveDataset(Dataset):
         "test": 0.1,
     }
 
+    default_path = Path(__file__).parents[3] / "datasets"
+    default_path = default_path.resolve()
+
     def __init__(
         self,
-        path: str | PathLike,
-        dataset: str,
-        w: int,
-        h: int,
+        *,
+        path: str | PathLike = default_path,
+        dataset: str = "camelyon17",
+        w: int = 256,
+        h: int = 256,
         frac_keep: float = 0.125,
         split: Literal["train", "val", "test"] = "train",
         domain_split: Literal["id", "ood"] = "id",
