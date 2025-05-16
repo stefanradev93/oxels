@@ -97,13 +97,13 @@ def objective(trial: optuna.Trial):
         dir="wandb_results",
     )
 
-    wandb.define_metric("training/step")
-    wandb.define_metric("validation/step")
-    wandb.define_metric("testing/step")
+    # wandb.define_metric("training/step")
+    # wandb.define_metric("validation/step")
+    # wandb.define_metric("testing/step")
 
-    wandb.define_metric("training/*", step_metric="training/step")
-    wandb.define_metric("validation/*", step_metric="validation/step")
-    wandb.define_metric("testing/*", step_metric="testing/step")
+    # wandb.define_metric("training/*", step_metric="training/step")
+    # wandb.define_metric("validation/*", step_metric="validation/step")
+    # wandb.define_metric("testing/*", step_metric="testing/step")
 
     wandb.summary["trial_steps"] = trial_steps
     wandb.summary["num_parameters"] = num_parameters
@@ -128,6 +128,7 @@ def objective(trial: optuna.Trial):
             ShowOxels(images=validation_images),
         ],
         logger=logger,
+        # val_check_interval=0.1,
     )
 
     try:
