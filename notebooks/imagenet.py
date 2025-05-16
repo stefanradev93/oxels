@@ -21,7 +21,7 @@ def objective(trial: optuna.Trial):
     learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
     weight_decay = 1e-4
 
-    num_stages = trial.suggest_int("num_stages", 4, 6)
+    num_stages = trial.suggest_int("num_stages", 4, 4)
     num_oxels = trial.suggest_int("num_oxels", 16, 64, step=8)
     base_channels = trial.suggest_int("base_channels", max(16, num_oxels), 64, step=8)
 
