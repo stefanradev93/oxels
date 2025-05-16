@@ -15,7 +15,7 @@ def objective(trial: optuna.Trial):
     total_steps = 300_000
     trial_steps = 10_000
     image_size = 64
-    num_nodes = 1
+    num_nodes = 8
     train_batch_size = 12
     val_batch_size = 24
     learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
