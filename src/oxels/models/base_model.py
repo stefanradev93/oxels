@@ -3,7 +3,6 @@ import torch.nn as nn
 
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
-from torch import compile as jit
 
 from oxels.losses import original_loss
 
@@ -27,11 +26,9 @@ class BaseModel(MetricsMixin, L.LightningModule):
         )
         self.backbone = backbone
 
-    @jit(backend="cudagraphs")
     def forward(self, x):
         return self.backbone(x)
 
-    @jit(backend="cudagraphs")
     def compute_loss(self, batch):
         view1, view2, permutation, flags, mask1, mask2 = batch
 
