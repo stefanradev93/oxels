@@ -21,7 +21,7 @@ class ShowOxels(L.Callback):
         oxels = oxels.reshape((batch_size * height, channels * width))
 
         # ensure wandb knows these are grayscale
-        oxels = oxels[..., None]
+        oxels = oxels[None]
 
         oxels = wandb.Image(oxels, caption="Latent Space Visualization")
 
