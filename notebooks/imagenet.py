@@ -15,7 +15,7 @@ def objective(trial: optuna.Trial):
     total_steps = 300_000
     trial_steps = 10_000
     image_size = 64
-    num_nodes = 2
+    num_nodes = 1
     train_batch_size = 12
     val_batch_size = 24
     learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
@@ -81,7 +81,7 @@ def objective(trial: optuna.Trial):
     model = ImageNetModel(**model_config)
 
     with torch.device("cpu"):
-        validation_images = [model.val_dataloader().dataset.dataset[i] for i in range(4)]
+        validation_images = [model.val_dataloader().dataset.dataset[i][0] for i in range(4)]
         validation_images = torch.stack(validation_images)
 
     num_parameters = sum(p.numel() for p in model.parameters())
@@ -135,5 +135,5 @@ def objective(trial: optuna.Trial):
 pruner = optuna.pruners.HyperbandPruner()
 pruner = optuna.pruners.PatientPruner(pruner, patience=128, min_delta=1e-3)
 
-study = optuna.create_study(direction="minimize")
-study.optimize(objective, n_trials=30, catch=RuntimeError, pruner=pruner)
+study = optuna.create_study(direction="minimize", pruner=pruner)
+study.optimize(objective, n_trials=30, catch=RuntimeError)
