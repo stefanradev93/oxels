@@ -28,8 +28,8 @@ class SimpleUNet(nn.Module):
         height: int,
         width: int,
         channels_of_stage: Sequence[int],
-        in_channels: int = None,
-        out_channels: int = 1,
+        in_channels: int,
+        out_channels: int,
         num_res_blocks: Sequence[int] = None,
         residual_dropout: Sequence[float] = None,
         has_attention: Sequence[bool] = None,
@@ -42,6 +42,8 @@ class SimpleUNet(nn.Module):
             in_channels = channels_of_stage[0]
         if num_res_blocks is None:
             num_res_blocks = [1] * L
+        if residual_dropout is None:
+            residual_dropout = [0.0] * L
         if has_attention is None:
             has_attention = [False] * L
 
