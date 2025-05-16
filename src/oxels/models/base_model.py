@@ -27,11 +27,11 @@ class BaseModel(MetricsMixin, L.LightningModule):
         )
         self.backbone = backbone
 
-    # @jit
+    @jit(backend="cudagraphs")
     def forward(self, x):
         return self.backbone(x)
 
-    # @jit
+    @jit(backend="cudagraphs")
     def compute_loss(self, batch):
         view1, view2, permutation, flags, mask1, mask2 = batch
 
