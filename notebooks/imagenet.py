@@ -14,6 +14,8 @@ def objective(trial: optuna.Trial):
     torch.cuda.empty_cache()
     torch.set_float32_matmul_precision("medium")
 
+    print("Device Count:", torch.cuda.device_count())
+
     total_steps = 300_000
     trial_steps = 10_000
     image_size = 64
