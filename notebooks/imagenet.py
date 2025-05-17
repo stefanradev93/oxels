@@ -164,7 +164,7 @@ def main(args):
     pruner = optuna.pruners.HyperbandPruner()
     pruner = optuna.pruners.PatientPruner(pruner, patience=5, min_delta=1e-3)
 
-    study = optuna.create_study(direction="minimize", pruner=pruner, storage="sqlite:///no-deadlock.db", load_if_exists=False)
+    study = optuna.create_study(direction="minimize", pruner=pruner, storage="sqlite:///no-deadlock.db")
     study.optimize(objective, catch=(RuntimeError, MemoryError), gc_after_trial=True)
 
 
