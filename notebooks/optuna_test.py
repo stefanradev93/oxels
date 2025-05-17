@@ -50,8 +50,8 @@ def main(args):
     L.seed_everything(seed)
     sampler = optuna.samplers.TPESampler(seed=seed)
     study = optuna.create_study(
-        study_name="minimal-model",
-        storage="sqlite:///minimal-model.db",
+        study_name="optuna-test",
+        storage="sqlite:///optuna-test.db",
         load_if_exists=True,
         sampler=sampler,
     )
