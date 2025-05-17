@@ -166,7 +166,7 @@ def main(args):
     pruner = optuna.pruners.HyperbandPruner()
     pruner = optuna.pruners.PatientPruner(pruner, patience=5, min_delta=1e-3)
 
-    storage = f"sqlite:///job-{os.environ['SLURM_JOB_ID']}.db"
+    storage = f"sqlite:///job-{os.environ.get('SLURM_JOB_ID', 'unknown')}.db"
     study = optuna.create_study(direction="minimize", pruner=pruner, storage=storage)
     study.optimize(objective, catch=(RuntimeError, MemoryError), gc_after_trial=True)
 
