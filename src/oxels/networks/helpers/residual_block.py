@@ -27,8 +27,9 @@ class ResidualLayer(nn.Module):
             self.projector = nn.Identity()
         else:
             self.projector = nn.Conv2d(
-                in_features, out_features, kernel_size=kernel_size, stride=stride, padding="same"
+                in_features, out_features, kernel_size=kernel_size, stride=stride, padding="same", bias=False
             )
+            nn.init.orthogonal_(self.projector.weight)
 
         self.conv = nn.Conv2d(in_features, out_features, kernel_size=kernel_size, stride=stride, padding="same")
 
@@ -68,10 +69,6 @@ class ResidualBlock(nn.Sequential):
         stride: int = 1,
         activation: ActivationType = nn.SiLU,
         out_activation: Optional[ActivationType] = None,
-        use_attention: bool = False,
-        height: Optional[int] = None,
-        width: Optional[int] = None,
-        num_heads: int = 4,
         use_batchnorm: bool = False,
         dropout: Optional[float] = 0.05,
     ):

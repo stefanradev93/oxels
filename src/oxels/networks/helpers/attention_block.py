@@ -18,12 +18,23 @@ class AttentionLayer(nn.Module):
         self.out_features = out_features
         self.num_heads = num_heads
 
-        self.residual_projector = nn.Conv2d(in_features, out_features, kernel_size=1, stride=1, padding="same")
+        self.residual_projector = nn.Conv2d(in_features, out_features, kernel_size=1, stride=1, padding="same", bias=False)
+        nn.init.orthogonal_(self.residual_projector.weight)
 
         self.input_projector = nn.Conv2d(in_features, hidden_features, kernel_size=1, stride=1, padding="same")
+        nn.init.orthogonal_(self.input_projector.weight)
+        nn.init.zeros_(self.input_projector.bias)
+
         self.attention = nn.MultiheadAttention(embed_dim=hidden_features, num_heads=num_heads)
+        # nn.init.orthogonal_(self.attention.in_proj_weight)
+        # nn.init.zeros_(self.attention.in_proj_bias)
+        # nn.init.orthogonal_(self.attention.out_proj.weight)
+        # nn.init.zeros_(self.attention.out_proj.bias)
+
         self.layer_norm = nn.LayerNorm(hidden_features)
         self.output_projector = nn.Conv2d(hidden_features, out_features, kernel_size=1, stride=1, padding="same")
+        nn.init.orthogonal_(self.output_projector.weight)
+        nn.init.zeros_(self.output_projector.bias)
 
         if activation is not None:
             self.activation = activation()
