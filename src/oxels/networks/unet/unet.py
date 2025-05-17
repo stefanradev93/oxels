@@ -7,7 +7,9 @@ from torchvision.transforms.functional import center_crop
 from oxels.typing import ActivationType, UNetBlockType as BlockType
 from oxels.utils import pad_to_even_height_and_width
 
-from ..helpers import ConvBlock
+from ..helpers import AttentionBlock, ResidualBlock
+
+print = lambda *args, **kwargs: None  # type: ignore
 
 
 class UNet(nn.Module):
@@ -21,11 +23,16 @@ class UNet(nn.Module):
         up_features: Sequence[Sequence[int]],
         activation: ActivationType = nn.SiLU,
         out_activation: Optional[ActivationType] = None,
-        down_types: BlockType | Sequence[BlockType] = ConvBlock,
-        middle_type: BlockType = ConvBlock,
-        up_types: BlockType | Sequence[BlockType] = ConvBlock,
+        down_types: BlockType | Sequence[BlockType] = ResidualBlock,
+        middle_type: BlockType = AttentionBlock,
+        up_types: BlockType | Sequence[BlockType] = ResidualBlock,
     ):
         super().__init__()
+        print(f"{in_features=}")
+        print(f"{out_features=}")
+        print(f"{down_features=}")
+        print(f"{middle_features=}")
+        print(f"{up_features=}")
 
         if len(down_features) != len(up_features):
             raise ValueError(
@@ -63,8 +70,8 @@ class UNet(nn.Module):
         self.encoder_pooling = nn.Conv2d(
             hidden_features,
             hidden_features,
-            3,
-            2,
+            kernel_size=3,
+            stride=2,
             padding=1,
         )
 
@@ -83,21 +90,19 @@ class UNet(nn.Module):
             )
         else:
             self.middle = middle_type(
-                middle_features, in_features=hidden_features, out_features=hidden_features, activation=activation
+                middle_features,
+                in_features=hidden_features,
+                out_features=hidden_features,
+                activation=activation,
             )
+
+        self.decoder_pooling = nn.Upsample(scale_factor=2, mode="nearest")
 
         self.decoder = up_type(
             up_features[-1],
             in_features=hidden_features,
             out_features=out_features,
             activation=activation,
-        )
-        self.decoder_pooling = nn.ConvTranspose2d(
-            hidden_features,
-            hidden_features,
-            3,
-            2,
-            padding=1,
         )
 
         if in_features != out_features:
@@ -112,18 +117,30 @@ class UNet(nn.Module):
             self.out_activation = nn.Identity()
 
     def __call__(self, x, **kwargs):
-        # pad so we don't lose information on the down-pooling
-        x = pad_to_even_height_and_width(x)
+        print(f"input {x.shape=}")
         residual = self.projector(x)
+        print(f"{residual.shape=}")
 
         x = self.encoder(x, **kwargs)
-        x = self.encoder_pooling(x)
-        x = self.middle(x, **kwargs)
-        x = self.decoder_pooling(x)
-        x = self.decoder(x, **kwargs)
+        print(f"encoded {x.shape=}")
 
-        # center-crop after the forward pass to discard unusable pixels
+        # pad so we don't lose information on the down-pooling
+        x = pad_to_even_height_and_width(x)
+        print(f"padded {x.shape=}")
+        x = self.encoder_pooling(x)
+        print(f"down pooled {x.shape=}")
+
+        x = self.middle(x, **kwargs)
+        print(f"middle output {x.shape=}")
+
+        # center-crop after upsampling to discard unusable pixels
+        x = self.decoder_pooling(x)
+        print(f"up pooled {x.shape=}")
         x = center_crop(x, list(residual.shape[-2:]))
+        print(f"cropped {x.shape=}")
+
+        x = self.decoder(x, **kwargs)
+        print(f"decoded {x.shape=}")
 
         x = x + residual
 

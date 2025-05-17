@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
-from oxels.losses import original_loss
+from oxels.losses import vectorized_loss
 
 from .metrics_mixin import MetricsMixin
 
@@ -35,7 +35,7 @@ class BaseModel(MetricsMixin, L.LightningModule):
         oxels_view1 = self(view1)
         oxels_view2 = self(view2)
 
-        loss = original_loss(oxels_view1, oxels_view2, permutation, flags, mask1, mask2)
+        loss = vectorized_loss(oxels_view1, oxels_view2, permutation, flags, mask1, mask2)
 
         return loss
 

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 import torch
 import torch.nn as nn
 
@@ -25,11 +26,11 @@ class SimpleUViT(nn.Module):
         self,
         height: int,
         width: int,
-        channels_of_stage: list,
+        channels_of_stage: Sequence[int],
         in_channels: int = None,
         out_channels: int = 1,
-        num_res_blocks: list = None,
-        residual_dropout: list = None,
+        num_res_blocks: Sequence[int] = None,
+        residual_dropout: Sequence[float] = None,
         num_transformer_blocks: int = 4,
         num_heads: int = 4,
         transformer_expansion: int = 4,

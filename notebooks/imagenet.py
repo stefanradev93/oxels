@@ -1,21 +1,23 @@
 import lightning as L
 import optuna
+from optuna.integration import PyTorchLightningPruningCallback
 import torch
 from lightning.pytorch import callbacks
 from lightning.pytorch.loggers import WandbLogger
 
 import wandb
-from oxels.callbacks import ReportValidationLoss, ShowOxels
+from oxels.callbacks import ShowOxels
 from oxels.models import ImageNetModel
 
 
 def objective(trial: optuna.Trial):
+    torch.cuda.empty_cache()
     torch.set_float32_matmul_precision("medium")
 
     total_steps = 300_000
     trial_steps = 10_000
     image_size = 64
-    num_nodes = 8
+    num_nodes = 16
     train_batch_size = 12
     val_batch_size = 24
     learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
@@ -91,10 +93,17 @@ def objective(trial: optuna.Trial):
     run = wandb.init(
         entity="kl_divergence-rensselaer-polytechnic-institute",
         project="oxels",
-        name="ImageNet Hyperparameter Tuning",
         config=config,
         dir="wandb_results",
     )
+
+    # wandb.define_metric("training/step")
+    # wandb.define_metric("validation/step")
+    # wandb.define_metric("testing/step")
+
+    # wandb.define_metric("training/*", step_metric="training/step")
+    # wandb.define_metric("validation/*", step_metric="validation/step")
+    # wandb.define_metric("testing/*", step_metric="testing/step")
 
     wandb.summary["trial_steps"] = trial_steps
     wandb.summary["num_parameters"] = num_parameters
@@ -115,10 +124,11 @@ def objective(trial: optuna.Trial):
             #                save_top_k=1,
             #                filename="best_model",
             #            ),
-            ReportValidationLoss(trial),
+            PyTorchLightningPruningCallback(trial, monitor="validation/loss"),
             ShowOxels(images=validation_images),
         ],
         logger=logger,
+        val_check_interval=0.1,
     )
 
     try:
@@ -128,17 +138,16 @@ def objective(trial: optuna.Trial):
         run.finish()
         raise
 
-    metrics = trainer.validate(model)[0]
-
-    wandb.summary["validation/loss"] = metrics["validation/loss"]
+    result = trainer.callback_metrics["validation/loss"]
+    wandb.summary["result"] = result
 
     run.finish()
 
-    return metrics["validation/loss"]
+    return result
 
 
 pruner = optuna.pruners.HyperbandPruner()
 pruner = optuna.pruners.PatientPruner(pruner, patience=128, min_delta=1e-3)
 
 study = optuna.create_study(direction="minimize", pruner=pruner, storage="sqlite:///imagenet.db", load_if_exists=True)
-study.optimize(objective, n_trials=30, catch=RuntimeError)
+study.optimize(objective, n_trials=30, catch=(RuntimeError, MemoryError))
