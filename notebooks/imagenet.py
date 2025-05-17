@@ -108,8 +108,21 @@ def objective(trial: optuna.Trial):
     wandb.summary["trial_steps"] = trial_steps
     wandb.summary["num_parameters"] = num_parameters
 
+    # grab the few key trial.params you care about
+    lr = trial.params["learning_rate"]
+    bc = trial.params["base_channels"]
+    ns = trial.params["num_stages"]
+    ox = trial.params["num_oxels"]
+    n_params = num_parameters / 1e6
+
+    # build a short, human-readable name
+    run_name = (
+        f"lr{lr:.0e}_bc{bc}_stg{ns}_ox{ox}_"
+        f"{n_params:.1f}M"
+    )
+
     logger = WandbLogger(
-        name="ImageNet Hyperparameter Tuning",
+        name=run_name,
         save_dir="logs",
         project="oxels",
     )
