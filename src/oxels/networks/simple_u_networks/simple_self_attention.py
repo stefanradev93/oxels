@@ -79,7 +79,7 @@ class SimpleAttention(nn.Module):
         x_norm = self.input_norm(x)
         x_flat = x_norm.reshape(B, C, HW)  # (B, C, HW)
         #x_norm = self.input_norm(x_flat)  # (B, C, HW)
-        x_flat = x_flat.permute(0, 2, 1)  # (B, HW, C)
+        x_flat = x_flat.permute(0, 2, 1).contiguous()  # (B, HW, C)
 
         # 2) Project to Q, K, V
         q = self.q_proj(x_flat)  # (B, HW, C)
@@ -92,12 +92,12 @@ class SimpleAttention(nn.Module):
         v = v.reshape(B, HW, self.num_heads, self.head_dim)
 
         # 4) Normalize Q, K
-        q_perm = q.permute(0, 3, 1, 2)  # (B, head_dim, HW, num_heads)
-        k_perm = k.permute(0, 3, 1, 2)  # (B, head_dim, HW, num_heads)
+        q_perm = q.permute(0, 3, 1, 2).contiguous()  # (B, head_dim, HW, num_heads)
+        k_perm = k.permute(0, 3, 1, 2).contiguous()  # (B, head_dim, HW, num_heads)
         q = self.q_norm(q_perm)
         k = self.k_norm(k_perm)
-        q = q.permute(0, 2, 3, 1)  # (B, HW, num_heads, head_dim)
-        k = k.permute(0, 2, 3, 1)  # (B, HW, num_heads, head_dim)
+        q = q.permute(0, 2, 3, 1).contiguous()  # (B, HW, num_heads, head_dim)
+        k = k.permute(0, 2, 3, 1).contiguous()  # (B, HW, num_heads, head_dim)
 
         # 5) Scale Q
         q = q * (self.head_dim**-0.5)
@@ -114,7 +114,7 @@ class SimpleAttention(nn.Module):
         out = self.out_proj(attn_vals)  # (B, HW, C)
 
         # 9) Reshape back to spatial
-        out = out.reshape(B, H, W, C).permute(0, 3, 1, 2)  # (B, C, H, W)
+        out = out.reshape(B, H, W, C).permute(0, 3, 1, 2).contiguous()  # (B, C, H, W)
         out = out + x_norm
         return out
 

@@ -58,13 +58,13 @@ class SimpleMLPBlock(nn.Module):
         # x: (B, C, H, W)
         x = self.norm(x)
         # move channels to last dim for Linear
-        h = x.permute(0, 2, 3, 1)  # (B, H, W, C)
+        h = x.permute(0, 2, 3, 1).contiguous()  # (B, H, W, C)
         h = self.dense_up(h)  # (B, H, W, C*expansion)
         h = self.activation(h)
         h = self.dropout(h)
         h = self.dense_down(h)  # (B, H, W, C)
         # back to (B, C, H, W)
-        return h.permute(0, 3, 1, 2)
+        return h.permute(0, 3, 1, 2).contiguous()  # (B, C, H, W)
 
 
 if __name__ == "__main__":
