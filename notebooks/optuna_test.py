@@ -46,7 +46,7 @@ def objective(trial: optuna.Trial):
 def main(args):
     import os
 
-    seed = os.environ.get("SLURM_JOB_ID", 0)
+    seed = int(os.environ.get("SLURM_JOB_ID", 0))
     L.seed_everything(seed)
     sampler = optuna.samplers.TPESampler(seed=seed)
     study = optuna.create_study(
