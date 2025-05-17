@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from oxels.datasets import CIFAR10 as ImageNet
-from oxels.networks import SimpleUNet
+from oxels.networks import SimpleUNet, SimpleUViT, UNet
 
 from .base_model import BaseModel
 
@@ -39,17 +39,40 @@ class ImageNetModel(BaseModel):
         for stage in dropout_stages:
             residual_dropout[stage] = dropout
 
-        backbone = SimpleUNet(
-            height=image_size,
-            width=image_size,
-            in_channels=3,
-            out_channels=num_oxels,
-            channels_of_stage=stage_channels,
-            has_attention=has_attention,
-            num_res_blocks=num_res_blocks,
-            norm_groups=num_norm_groups,
-            residual_dropout=residual_dropout,
+        # backbone = SimpleUNet(
+        #     height=image_size,
+        #     width=image_size,
+        #     in_channels=3,
+        #     out_channels=num_oxels,
+        #     channels_of_stage=stage_channels,
+        #     has_attention=has_attention,
+        #     num_res_blocks=num_res_blocks,
+        #     norm_groups=num_norm_groups,
+        #     residual_dropout=residual_dropout,
+        # )
+
+        down_features = [[c] * n for c, n in zip(stage_channels, num_res_blocks)]
+        middle_features = [stage_channels[-1]] * 3
+        up_features = list(reversed([list(reversed(c)) for c in down_features]))
+
+        backbone = UNet(
+            in_features=3,
+            out_features=num_oxels,
+            down_features=down_features,
+            middle_features=middle_features,
+            up_features=up_features,
         )
+
+        # backbone = SimpleUViT(
+        #     height=image_size,
+        #     width=image_size,
+        #     in_channels=3,
+        #     out_channels=num_oxels,
+        #     channels_of_stage=stage_channels,
+        #     num_res_blocks=num_res_blocks,
+        #     norm_groups=num_norm_groups,
+        #     residual_dropout=residual_dropout,
+        # )
 
         super().__init__(
             backbone=backbone,
