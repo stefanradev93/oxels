@@ -19,8 +19,8 @@ def objective(trial: optuna.Trial):
     total_steps = 300_000
     trial_steps = 10_000
     image_size = 64
-    num_nodes = 1
-    num_devices = 1
+    num_nodes = 8
+    num_devices = -1
     train_batch_size = 12
     val_batch_size = 24
     learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
@@ -163,5 +163,5 @@ def objective(trial: optuna.Trial):
 pruner = optuna.pruners.HyperbandPruner()
 pruner = optuna.pruners.PatientPruner(pruner, patience=5, min_delta=1e-3)
 
-study = optuna.create_study(direction="minimize", pruner=pruner, storage="sqlite:///imagenet.db", load_if_exists=True)
+study = optuna.create_study(direction="minimize", pruner=pruner, storage="sqlite:///imagenet.db", load_if_exists=False)
 study.optimize(objective, catch=(RuntimeError, MemoryError), gc_after_trial=True)
