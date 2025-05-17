@@ -137,11 +137,11 @@ def objective(trial: optuna.Trial):
             #                save_top_k=1,
             #                filename="best_model",
             #            ),
-            PyTorchLightningPruningCallback(trial, monitor="validation/loss"),
+            # PyTorchLightningPruningCallback(trial, monitor="validation/loss"),
             ShowOxels(images=validation_images),
         ],
         logger=logger,
-        val_check_interval=0.1,
+        # val_check_interval=0.1,
     )
 
     try:
@@ -162,5 +162,5 @@ def objective(trial: optuna.Trial):
 pruner = optuna.pruners.HyperbandPruner()
 pruner = optuna.pruners.PatientPruner(pruner, patience=128, min_delta=1e-3)
 
-study = optuna.create_study(direction="minimize", pruner=pruner, storage="sqlite:///imagenet.db", load_if_exists=True)
-study.optimize(objective, n_trials=30, catch=(RuntimeError, MemoryError))
+study = optuna.create_study(direction="minimize", pruner=pruner)
+study.optimize(objective, n_jobs=1, n_trials=1, catch=(RuntimeError, MemoryError), gc_after_trial=True)
