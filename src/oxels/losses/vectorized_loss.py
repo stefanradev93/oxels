@@ -38,31 +38,31 @@ def vectorized_loss(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tenso
 
     # ensure correct dtype
     indices = indices.long()
-    flags   = flags.float()
-    m1      = mask1.float()
-    m2      = mask2.float()
+    flags = flags.float()
+    m1 = mask1.float()
+    m2 = mask2.float()
 
     # gather oview2 at the mapped positions
     # idx_exp: (B, C, N)
     idx_exp = indices.unsqueeze(1).expand(-1, C, -1)
-    o2g     = torch.gather(o2, dim=2, index=idx_exp)
+    o2g = torch.gather(o2, dim=2, index=idx_exp)
 
     # per‐element difference and max‐over‐channels
-    diff     = o1 - o2g               # (B, C, N)
+    diff = o1 - o2g  # (B, C, N)
     max_diff = 0.5 * diff.abs().max(dim=1).values  # (B, N)
 
     # per‐sample average of flags
-    flags_mean = flags.mean(dim=1, keepdim=True)   # (B, 1)
+    flags_mean = flags.mean(dim=1, keepdim=True)  # (B, 1)
 
     # base loss term (same for all N)
-    base = 0.25 * (1.0 - flags_mean)               # (B, 1)
+    base = 0.25 * (1.0 - flags_mean)  # (B, 1)
 
     # per‐element loss
-    loss_elem = base + ( max_diff * (2*flags - 1) + max_diff**2 )  # (B, N)
+    loss_elem = base + (max_diff * (2 * flags - 1) + max_diff**2)  # (B, N)
 
     # build combined mask: mask1[b,n] * mask2[b, indices[b,n]]
-    m2g  = torch.gather(m2, dim=1, index=indices)  # (B, N)
-    mask = m1 * m2g                                 # (B, N)
+    m2g = torch.gather(m2, dim=1, index=indices)  # (B, N)
+    mask = m1 * m2g  # (B, N)
 
     # per‐sample reduction
     # sum(loss * mask) / sum(mask)
