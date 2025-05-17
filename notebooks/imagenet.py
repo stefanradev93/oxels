@@ -17,7 +17,7 @@ def objective(trial: optuna.Trial):
     total_steps = 300_000
     trial_steps = 10_000
     image_size = 64
-    num_nodes = 16
+    num_nodes = 32
     train_batch_size = 12
     val_batch_size = 24
     learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
@@ -90,10 +90,24 @@ def objective(trial: optuna.Trial):
 
     config = model_config | trainer_config
 
+    # grab the few key trial.params you care about
+    lr = trial.params["learning_rate"]
+    bc = trial.params["base_channels"]
+    ns = trial.params["num_stages"]
+    ox = trial.params["num_oxels"]
+    n_params = num_parameters / 1e6
+
+    # build a short, human-readable name
+    run_name = (
+        f"lr{lr:.0e}_bc{bc}_stg{ns}_ox{ox}_"
+        f"{n_params:.1f}M"
+    )
+
     run = wandb.init(
         entity="kl_divergence-rensselaer-polytechnic-institute",
         project="oxels",
         config=config,
+        name=run_name,
         dir="wandb_results",
     )
 
@@ -108,23 +122,10 @@ def objective(trial: optuna.Trial):
     wandb.summary["trial_steps"] = trial_steps
     wandb.summary["num_parameters"] = num_parameters
 
-    # grab the few key trial.params you care about
-    lr = trial.params["learning_rate"]
-    bc = trial.params["base_channels"]
-    ns = trial.params["num_stages"]
-    ox = trial.params["num_oxels"]
-    n_params = num_parameters / 1e6
-
-    # build a short, human-readable name
-    run_name = (
-        f"lr{lr:.0e}_bc{bc}_stg{ns}_ox{ox}_"
-        f"{n_params:.1f}M"
-    )
-
     logger = WandbLogger(
-        name=run_name,
         save_dir="logs",
         project="oxels",
+        name=run_name,
     )
 
     trainer = L.Trainer(
@@ -141,7 +142,7 @@ def objective(trial: optuna.Trial):
             ShowOxels(images=validation_images),
         ],
         logger=logger,
-        # val_check_interval=0.1,
+        val_check_interval=0.1,
     )
 
     try:
@@ -163,4 +164,4 @@ pruner = optuna.pruners.HyperbandPruner()
 pruner = optuna.pruners.PatientPruner(pruner, patience=128, min_delta=1e-3)
 
 study = optuna.create_study(direction="minimize", pruner=pruner)
-study.optimize(objective, n_jobs=1, n_trials=1, catch=(RuntimeError, MemoryError), gc_after_trial=True)
+study.optimize(objective, n_jobs=1, catch=(RuntimeError, MemoryError), gc_after_trial=True)
