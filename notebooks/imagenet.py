@@ -75,7 +75,7 @@ def objective(trial: optuna.Trial):
         max_steps=trial_steps,
         accelerator="gpu",
         strategy="ddp",
-        devices=-1,
+        devices=1,
         precision="16-mixed",
         num_nodes=num_nodes,
     )
@@ -142,7 +142,7 @@ def objective(trial: optuna.Trial):
             ShowOxels(images=validation_images),
         ],
         logger=logger,
-        val_check_interval=0.1,
+        # val_check_interval=0.1,
     )
 
     try:
