@@ -76,8 +76,27 @@ def single_trial(hparams):
     score = torch.rand(1).item() if get_rank() == 0 else None
     return score
 
+def set_env_from_slurm():
+    if "SLURM_PROCID" in os.environ:
+        os.environ["RANK"] = os.environ["SLURM_PROCID"]
+    if "SLURM_NTASKS" in os.environ:
+        os.environ["WORLD_SIZE"] = os.environ["SLURM_NTASKS"]
+    if "SLURM_NODELIST" in os.environ and "MASTER_ADDR" not in os.environ:
+        # Get the master address: assumes the first hostname in SLURM_NODELIST
+        import subprocess
+        hostnames = subprocess.check_output(
+            ["scontrol", "show", "hostnames", os.environ["SLURM_NODELIST"]]
+        ).decode().split()
+        os.environ["MASTER_ADDR"] = hostnames[0]
+    # Pick a port, e.g., 29500, if not already set
+    if "MASTER_PORT" not in os.environ:
+        os.environ["MASTER_PORT"] = "29500"
+
 def main():
     import optuna
+
+    # --- Put this at the very top of main() ---
+    set_env_from_slurm()
 
     rank = get_rank()
     world_size = get_world_size()
