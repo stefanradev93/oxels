@@ -32,7 +32,7 @@ class SimpleTransformerBlock(nn.Module):
         # Residual MLP
         x = x + self.mlp(x)
         # Residual Self-Attention
-        x = x + self.attn(x)
+        x = self.attn(x)
         return x
 
 

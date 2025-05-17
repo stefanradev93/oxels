@@ -45,7 +45,7 @@ class SimpleResidualBlock(nn.Module):
             in_channels=out_channels, out_channels=out_channels, kernel_size=3, padding=1, bias=True
         )
         nn.init.xavier_uniform_(self.conv_in.weight, gain=1.0)
-        nn.init.zeros_(self.conv_in.bias)
+        nn.init.normal_(self.conv_in.bias, mean=0.0, std=1e-6)
 
         # NormalizeWithBias after first conv
         self.norm_out = SimpleNorm(channel_dim=out_channels, method="layer", center=True, scale=True)
@@ -56,8 +56,9 @@ class SimpleResidualBlock(nn.Module):
         self.conv_out = nn.Conv2d(
             in_channels=out_channels, out_channels=out_channels, kernel_size=3, padding=1, bias=True
         )
-        nn.init.zeros_(self.conv_out.weight)
-        nn.init.zeros_(self.conv_out.bias)
+        #nn.init.orthogonal_(self.conv_out.weight)
+        nn.init.normal_(self.conv_out.weight, mean=0.0, std=1e-6)
+        nn.init.normal_(self.conv_out.bias, mean=0.0, std=1e-6)
 
     def forward(self, x: torch.Tensor, skip_h: torch.Tensor = None) -> torch.Tensor:
         # x, skip_h: (B, C, H, W)

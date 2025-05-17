@@ -58,7 +58,7 @@ class SimpleAttention(nn.Module):
         # Initialize Q/K/V with Xavier uniform
         for proj in (self.q_proj, self.k_proj, self.v_proj):
             nn.init.xavier_uniform_(proj.weight, gain=1.0)
-            nn.init.zeros_(proj.bias)
+            nn.init.normal_(proj.bias, mean=0.0, std=1e-6)
 
         # 4) Normalize Q and K (layer norm over head dim)
         self.q_norm = SimpleNorm(self.head_dim, method="layer", center=True, scale=True)
@@ -66,8 +66,9 @@ class SimpleAttention(nn.Module):
 
         # 8) Output projection back to C, zero initialized
         self.out_proj = nn.Linear(channel_dim, channel_dim)
-        nn.init.zeros_(self.out_proj.weight)
-        nn.init.zeros_(self.out_proj.bias)
+        #nn.init.xavier_uniform_(self.out_proj.weight, gain=1.0)
+        nn.init.normal_(self.out_proj.weight, mean=0.0, std=1e-6) # this needs to be zero for uvit and residualuvit
+        nn.init.normal_(self.out_proj.bias, mean=0.0, std=1e-6)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, C, H, W)
@@ -75,19 +76,20 @@ class SimpleAttention(nn.Module):
         HW = H * W
 
         # 1) Flatten spatial dims and apply input norm
-        x_flat = x.view(B, C, HW)  # (B, C, HW)
-        x_norm = self.input_norm(x_flat)  # (B, C, HW)
-        x_norm = x_norm.permute(0, 2, 1)  # (B, HW, C)
+        x_norm = self.input_norm(x)
+        x_flat = x_norm.reshape(B, C, HW)  # (B, C, HW)
+        #x_norm = self.input_norm(x_flat)  # (B, C, HW)
+        x_flat = x_flat.permute(0, 2, 1)  # (B, HW, C)
 
         # 2) Project to Q, K, V
-        q = self.q_proj(x_norm)  # (B, HW, C)
-        k = self.k_proj(x_norm)
-        v = self.v_proj(x_norm)
+        q = self.q_proj(x_flat)  # (B, HW, C)
+        k = self.k_proj(x_flat)
+        v = self.v_proj(x_flat)
 
         # 3) Reshape for heads
-        q = q.view(B, HW, self.num_heads, self.head_dim)
-        k = k.view(B, HW, self.num_heads, self.head_dim)
-        v = v.view(B, HW, self.num_heads, self.head_dim)
+        q = q.reshape(B, HW, self.num_heads, self.head_dim)
+        k = k.reshape(B, HW, self.num_heads, self.head_dim)
+        v = v.reshape(B, HW, self.num_heads, self.head_dim)
 
         # 4) Normalize Q, K
         q_perm = q.permute(0, 3, 1, 2)  # (B, head_dim, HW, num_heads)
@@ -112,7 +114,8 @@ class SimpleAttention(nn.Module):
         out = self.out_proj(attn_vals)  # (B, HW, C)
 
         # 9) Reshape back to spatial
-        out = out.view(B, H, W, C).permute(0, 3, 1, 2)  # (B, C, H, W)
+        out = out.reshape(B, H, W, C).permute(0, 3, 1, 2)  # (B, C, H, W)
+        out = out + x_norm
         return out
 
 

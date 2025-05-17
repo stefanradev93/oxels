@@ -50,7 +50,7 @@ class SimpleUNet(nn.Module):
         # Initial conv
         self.initial_conv = nn.Conv2d(in_channels, channels_of_stage[0], kernel_size=3, padding=1, bias=True)
         nn.init.xavier_uniform_(self.initial_conv.weight, gain=1.0)
-        nn.init.zeros_(self.initial_conv.bias)
+        nn.init.normal_(self.initial_conv.bias, mean=0.0, std=1e-8)
 
         # Down path
         self.res_down = nn.ModuleList()
@@ -127,8 +127,10 @@ class SimpleUNet(nn.Module):
         )
         self.act_out = nn.SiLU()
         self.conv_out = nn.Conv2d(channels_of_stage[0], out_channels, kernel_size=3, padding=1, bias=True)
-        nn.init.zeros_(self.conv_out.weight)
-        nn.init.zeros_(self.conv_out.bias)
+        #nn.init.zeros_(self.conv_out.weight)
+        #nn.init.zeros_(self.conv_out.bias)
+        #nn.init.kaiming_normal_(self.conv_out.weight, a=0, mode='fan_in')
+        #nn.init.zeros_(self.conv_out.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, C, H, W)
