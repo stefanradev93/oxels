@@ -18,6 +18,7 @@ def objective(trial: optuna.Trial):
     trial_steps = 10_000
     image_size = 64
     num_nodes = 1
+    num_devices = -1
     train_batch_size = 12
     val_batch_size = 24
     learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
@@ -75,7 +76,7 @@ def objective(trial: optuna.Trial):
         max_steps=trial_steps,
         accelerator="gpu",
         strategy="ddp",
-        devices=1,
+        devices=num_devices,
         precision="16-mixed",
         num_nodes=num_nodes,
     )
@@ -147,18 +148,14 @@ def objective(trial: optuna.Trial):
 
     try:
         trainer.fit(model)
-    except optuna.TrialPruned:
-        # clean up and reraise
+
+        result = trainer.callback_metrics["validation/loss"]
+        wandb.summary["result"] = result
+
+        return result
+    finally:
+        # clean up
         run.finish()
-        raise
-
-    result = trainer.callback_metrics["validation/loss"]
-    wandb.summary["result"] = result
-
-    run.finish()
-
-    return result
-
 
 pruner = optuna.pruners.HyperbandPruner()
 pruner = optuna.pruners.PatientPruner(pruner, patience=5, min_delta=1e-3)
