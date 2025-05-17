@@ -21,8 +21,8 @@ def objective(trial: optuna.Trial):
     image_size = 64
     num_nodes = 1
     num_devices = 1
-    train_batch_size = 12
-    val_batch_size = 24
+    train_batch_size = 128
+    val_batch_size = 256
     learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
     weight_decay = 1e-4
 
