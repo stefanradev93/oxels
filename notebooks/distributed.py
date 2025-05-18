@@ -66,7 +66,9 @@ def objective(trial):
     if dist.get_world_size() > 1:
         print(f"Broadcasting hyperparameters for trial {trial.number} across all ranks...")
         object_list = [model_config, trainer_config]
-        dist.send_object_list(object_list, dst=0)
+        # broadcast the hyperparameters to all ranks
+        for _rank in range(1, dist.get_world_size()):
+            dist.send_object_list(object_list, dst=_rank)
         print(f"Successfully broadcasted hyperparameters for trial {trial.number}!")
 
     return connect(model_config, trainer_config)
