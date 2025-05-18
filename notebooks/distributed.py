@@ -108,11 +108,14 @@ def main(args):
     os.environ["WORLD_SIZE"] = str(size)
 
     # define which node is the main node
-    master_address = os.environ.get("MASTER_ADDR", "unknown")
-    master_port = os.environ.get("MASTER_PORT", "unknown")
+    if "MASTER_ADDR" not in os.environ:
+        os.environ["MASTER_ADDR"] = os.environ["SLURM_NODELIST"].split(",")[0]
 
-    print(f"Master address: {master_address}")
-    print(f"Master port: {master_port}")
+    if "MASTER_PORT" not in os.environ:
+        os.environ["MASTER_PORT"] = "29500"
+
+    print(f"Master address: {os.environ['MASTER_ADDR']}")
+    print(f"Master port: {os.environ['MASTER_PORT']}")
 
     # initialize the process group
     dist.init_process_group(backend="nccl", rank=rank, world_size=size)
