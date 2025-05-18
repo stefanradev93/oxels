@@ -128,7 +128,7 @@ def main(args):
 
     local_rank = os.environ["LOCAL_RANK"]
     print(f"Local Rank: {local_rank}")
-    torch.cuda.set_device(local_rank)
+    torch.cuda.set_device(f"cuda:{local_rank}")
 
     return run(rank, size)
 
