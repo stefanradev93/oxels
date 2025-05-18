@@ -90,7 +90,7 @@ def run(rank: int, size: int):
     while True:
         print(f"Waiting for hyperparameters on rank {rank}...")
         # other ranks only connect to the study
-        object_list = []
+        object_list = [None, None]
         dist.recv_object_list(object_list, src=0)
         model_config, trainer_config = object_list
         print(f"Received hyperparameters on rank {rank}!")
