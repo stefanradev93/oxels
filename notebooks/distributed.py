@@ -108,8 +108,11 @@ def main(args):
     os.environ["WORLD_SIZE"] = str(size)
 
     # define which node is the main node
-    os.environ["MASTER_ADDR"] = "127.0.0.1"
-    os.environ["MASTER_PORT"] = "29500"
+    master_address = os.environ.get("MASTER_ADDR", "unknown")
+    master_port = os.environ.get("MASTER_PORT", "unknown")
+
+    print(f"Master address: {master_address}")
+    print(f"Master port: {master_port}")
 
     # initialize the process group
     dist.init_process_group(backend="nccl", rank=rank, world_size=size)
