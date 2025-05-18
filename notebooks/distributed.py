@@ -111,7 +111,11 @@ def main(args):
 
     # define which node is the main node
     if "MASTER_ADDR" not in os.environ:
-        os.environ["MASTER_ADDR"] = os.environ["SLURM_NODELIST"].split(",")[0]
+        node_list = os.environ["SLURM_NODELIST"]
+        prefix, rest = node_list.split("[")
+        ids = rest.strip("]").split(",")
+        master_address = prefix + ids[0]
+        os.environ["MASTER_ADDR"] = master_address
 
     if "MASTER_PORT" not in os.environ:
         os.environ["MASTER_PORT"] = "29500"
@@ -120,7 +124,11 @@ def main(args):
     print(f"Master port: {os.environ['MASTER_PORT']}")
 
     # initialize the process group
-    dist.init_process_group(backend="nccl", rank=rank, world_size=size)
+    dist.init_process_group(backend="gloo", rank=rank, world_size=size)
+
+    local_rank = os.environ["LOCAL_RANK"]
+    print(f"Local Rank: {local_rank}")
+    torch.cuda.set_device(local_rank)
 
     return run(rank, size)
 
