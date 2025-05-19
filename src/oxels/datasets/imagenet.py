@@ -3,11 +3,9 @@ from pathlib import Path
 
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageNet as ImageNetVision
-from torchvision.datasets.utils import check_integrity, download_url
+from torchvision.datasets.utils import check_integrity, download_url, extract_archive
 
 from oxels.transforms import PerspectiveTransform
-
-import fiftyone.zoo
 
 
 class ImageNet(Dataset):
@@ -56,5 +54,3 @@ class ImageNet(Dataset):
                 raise RuntimeError(f"File {filepath} not found or corrupted.")
             else:
                 print(f"Found and verified {file} at {path} with hash {target_hash}.")
-
-        fiftyone.zoo.download_zoo_dataset("imagenet-2012", source_dir=path)
