@@ -51,7 +51,7 @@ class SimpleMLPBlock(nn.Module):
         self.activation = activation()
         self.dropout = nn.Dropout(dropout)
         self.dense_down = nn.Linear(channel_dim * expansion, channel_dim)
-        nn.init.normal_(self.dense_down.weight, mean=0.0, std=1-6)
+        nn.init.normal_(self.dense_down.weight, mean=0.0, std=1e-6)
         nn.init.normal_(self.dense_down.bias, mean=0.0, std=1e-6)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
