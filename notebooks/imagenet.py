@@ -10,45 +10,26 @@ from oxels.callbacks import ShowOxels
 from oxels.models import ImageNetModel
 
 
-def objective(trial: optuna.Trial):
+def objective():
     torch.cuda.empty_cache()
     torch.set_float32_matmul_precision("medium")
 
     print("Device Count:", torch.cuda.device_count())
 
     total_steps = 300_000
-    trial_steps = 10_000
     image_size = 64
     num_nodes = 1
     num_devices = 1
     train_batch_size = 128
     val_batch_size = 256
-    learning_rate = trial.suggest_float("learning_rate", 5e-5, 5e-3, log=True)
+    learning_rate = 3e-4
     weight_decay = 1e-4
 
-    num_stages = trial.suggest_int("num_stages", 4, 4)
-    num_oxels = trial.suggest_int("num_oxels", 16, 64, step=8)
-    base_channels = trial.suggest_int("base_channels", max(16, num_oxels), 64, step=8)
-
-    stage_multipliers = [
-        1,
-        trial.suggest_int("stage_multiplier_1", 1, 2),
-        trial.suggest_int("stage_multiplier_2", 2, 4, step=2),
-        trial.suggest_int("stage_multiplier_3", 2, 4, step=2),
-        trial.suggest_int("stage_multiplier_4", 4, 8, step=2),
-        trial.suggest_int("stage_multiplier_5", 4, 8, step=2),
-    ]
-    stage_multipliers = stage_multipliers[:num_stages]
-    stage_channels = [base_channels * factor for factor in stage_multipliers]
-
-    num_res_blocks = [
-        1,
-        trial.suggest_int("num_res_blocks_1", 1, 2, step=1),
-        trial.suggest_int("num_res_blocks_2", 2, 4, step=2),
-        trial.suggest_int("num_res_blocks_3", 2, 6, step=2),
-        trial.suggest_int("num_res_blocks_4", 2, 8, step=2),
-        trial.suggest_int("num_res_blocks_5", 2, 8, step=2),
-    ]
+    num_stages = 4
+    num_oxels = 64
+    base_channels = 64
+    stage_channels = [64, 128, 128, 256]
+    num_res_blocks = [1, 2, 4, 6]
 
     dropout_stages = [-2, -1]
     dropout = 0.1
@@ -75,7 +56,7 @@ def objective(trial: optuna.Trial):
     trainer_config = dict(
         gradient_clip_val=3.0,
         gradient_clip_algorithm="value",
-        max_steps=trial_steps,
+        max_steps=total_steps,
         accelerator="gpu",
         strategy="ddp",
         devices=num_devices,
@@ -94,15 +75,15 @@ def objective(trial: optuna.Trial):
     config = model_config | trainer_config
 
     # grab the few key trial.params you care about
-    lr = trial.params["learning_rate"]
-    bc = trial.params["base_channels"]
-    ns = trial.params["num_stages"]
-    ox = trial.params["num_oxels"]
+    lr = learning_rate
+    bc = base_channels
+    ns = num_stages
+    ox = num_oxels
     n_params = num_parameters / 1e6
 
     # build a short, human-readable name
     run_name = (
-        f"lr{lr:.0e}_bc{bc}_stg{ns}_ox{ox}_"
+        f"CIFAR64-lr{lr:.0e}_bc{bc}_stg{ns}_ox{ox}_"
         f"{n_params:.1f}M"
     )
 
@@ -114,15 +95,14 @@ def objective(trial: optuna.Trial):
         dir="wandb_results",
     )
 
-    # wandb.define_metric("training/step")
-    # wandb.define_metric("validation/step")
-    # wandb.define_metric("testing/step")
+    wandb.define_metric("training/step")
+    wandb.define_metric("validation/step")
+    wandb.define_metric("testing/step")
 
-    # wandb.define_metric("training/*", step_metric="training/step")
-    # wandb.define_metric("validation/*", step_metric="validation/step")
-    # wandb.define_metric("testing/*", step_metric="testing/step")
+    wandb.define_metric("training/*", step_metric="training/step")
+    wandb.define_metric("validation/*", step_metric="validation/step")
+    wandb.define_metric("testing/*", step_metric="testing/step")
 
-    wandb.summary["trial_steps"] = trial_steps
     wandb.summary["num_parameters"] = num_parameters
 
     logger = WandbLogger(
@@ -135,13 +115,12 @@ def objective(trial: optuna.Trial):
         **trainer_config,
         callbacks=[
             callbacks.LearningRateMonitor(logging_interval="step"),
-            #            callbacks.ModelCheckpoint(
-            #                monitor="validation/loss",
-            #                mode="min",
-            #                save_top_k=1,
-            #                filename="best_model",
-            #            ),
-            PyTorchLightningPruningCallback(trial, monitor="validation/loss"),
+            callbacks.ModelCheckpoint(
+                monitor="validation/loss",
+                mode="min",
+                save_top_k=1,
+                filename="best_model",
+            ),
             ShowOxels(images=validation_images),
         ],
         logger=logger,
@@ -161,14 +140,7 @@ def objective(trial: optuna.Trial):
 
 
 def main(args):
-    import os
-
-    pruner = optuna.pruners.HyperbandPruner()
-    pruner = optuna.pruners.PatientPruner(pruner, patience=5, min_delta=1e-3)
-
-    storage = f"sqlite:///job-{os.environ.get('SLURM_JOB_ID', 'unknown')}.db"
-    study = optuna.create_study(direction="minimize", pruner=pruner, storage=storage)
-    study.optimize(objective, catch=(RuntimeError, MemoryError), gc_after_trial=True)
+    objective()
 
 
 if __name__ == "__main__":
