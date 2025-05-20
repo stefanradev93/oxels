@@ -114,6 +114,18 @@ def recv_object() -> any:
     return object_list[0]
 
 
+def send_or_recv(fn, rank=None, group=None):
+    if rank is None:
+        rank = dist.get_rank(group)
+
+    if rank == 0:
+        object = fn()
+        broadcast_object(object)
+    else:
+        object = recv_object()
+
+    return object
+
 def create_or_recv_study(rank=None, group=None) -> optuna.Study:
     if rank is None:
         rank = dist.get_rank(group)
@@ -151,10 +163,12 @@ def setup():
 def main(args):
     setup()
 
-    study = create_or_recv_study()
-    trial = study.ask()
-    print(f"[{get_rank()}]: {trial.suggest_int('dim', 1, 128)}")
-    # study.optimize(objective, gc_after_trial=True)
+    study = send_or_recv(create_study)
+
+    while True:
+        trial = send_or_recv(study.ask)
+        value = objective(trial)
+        study.tell(trial, value)
 
     return 0
 
