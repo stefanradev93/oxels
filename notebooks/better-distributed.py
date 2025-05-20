@@ -40,6 +40,22 @@ def count_nodes() -> int:
     return int(os.environ.get("SLURM_NNODES", 1))
 
 
+def get_local_rank() -> int:
+    return int(os.environ.get("SLURM_PROCID", 0)) % int(os.environ.get("SLURM_NTASKS_PER_NODE", 1))
+
+
+def get_rank() -> int:
+    return int(os.environ.get("SLURM_PROCID", 0))
+
+
+def get_world_size() -> int:
+    return int(os.environ.get("SLURM_NTASKS", 1))
+
+
+def get_job_id() -> int:
+    return int(os.environ.get("SLURM_JOB_ID", 0))
+
+
 def objective(trial: optuna.Trial):
     torch.cuda.empty_cache()
 
@@ -112,12 +128,12 @@ def create_or_recv_study(rank=None, group=None) -> optuna.Study:
 
 def setup():
     # set the seed for reproducibility
-    seed = int(os.environ.get("SLURM_JOB_ID", "0"))
+    seed = get_job_id()
     L.seed_everything(seed)
 
     # get environment info from slurm or fallback to a single device
-    rank = int(os.environ.get("SLURM_PROCID", "0"))
-    size = int(os.environ.get("SLURM_NTASKS", "1"))
+    rank = get_rank()
+    size = get_world_size()
 
     # set torch environment variables
     os.environ["RANK"] = str(rank)
@@ -127,7 +143,7 @@ def setup():
     dist.init_process_group(backend="gloo", rank=rank, world_size=size)
 
     # set the device for this process
-    local_rank = os.environ["LOCAL_RANK"]
+    local_rank = get_local_rank()
     torch.cuda.set_device(f"cuda:{local_rank}")
 
 
