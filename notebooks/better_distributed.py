@@ -10,7 +10,8 @@ from torch.utils.data import TensorDataset, DataLoader
 import os
 import sys
 
-from .distutils import rank_zero
+
+from oxels.distribution import rank_zero
 
 
 class MinimalModel(L.LightningModule):
