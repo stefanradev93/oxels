@@ -18,12 +18,12 @@ def objective():
 
     total_steps = 300_000
     image_size = 64
-    num_nodes = 1
+    num_nodes = 2
     num_devices = 4
     train_batch_size = 128
     val_batch_size = 256
     learning_rate = 3e-4
-    lr_pct_start = 0.05
+    lr_pct_start = 0.01
     weight_decay = 1e-4
 
     num_stages = 4
