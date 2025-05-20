@@ -19,7 +19,7 @@ def objective():
     total_steps = 300_000
     image_size = 64
     num_nodes = 1
-    num_devices = 1
+    num_devices = 4
     train_batch_size = 128
     val_batch_size = 256
     learning_rate = 3e-4
