@@ -152,7 +152,9 @@ def main(args):
     setup()
 
     study = create_or_recv_study()
-    study.optimize(objective, gc_after_trial=True)
+    trial = study.ask()
+    print(f"[{get_rank()}]: {trial.suggest_int('dim', 1, 128)}")
+    # study.optimize(objective, gc_after_trial=True)
 
     return 0
 
