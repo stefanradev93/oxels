@@ -23,6 +23,7 @@ def objective():
     train_batch_size = 128
     val_batch_size = 256
     learning_rate = 3e-4
+    lr_pct_start = 0.05
     weight_decay = 1e-4
 
     num_stages = 4
@@ -45,6 +46,7 @@ def objective():
         attention_stages=attention_stages,
         learning_rate=learning_rate,
         weight_decay=weight_decay,
+        lr_pct_start=lr_pct_start,
         lr_div_factor=25.0,
         lr_final_div_factor=1e4,
         total_steps=total_steps,

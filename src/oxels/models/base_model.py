@@ -16,13 +16,14 @@ class BaseModel(MetricsMixin, L.LightningModule):
         *,
         learning_rate: float = 1e-3,
         weight_decay: float = 0.004,
+        lr_pct_start: float = 0.05,
         lr_div_factor: float = 25.0,
         lr_final_div_factor: float = 1e4,
         total_steps: int,
     ):
         super().__init__()
         self.save_hyperparameters(
-            learning_rate, weight_decay, lr_div_factor, lr_final_div_factor, total_steps, ignore=["backbone"]
+            learning_rate, weight_decay, lr_pct_start, lr_div_factor, lr_final_div_factor, total_steps, ignore=["backbone"]
         )
         self.backbone = backbone
 
@@ -50,7 +51,7 @@ class BaseModel(MetricsMixin, L.LightningModule):
             total_steps=self.hparams.total_steps,
             div_factor=self.hparams.lr_div_factor,
             final_div_factor=self.hparams.lr_final_div_factor,
-            pct_start=0.05,
+            pct_start=self.hparams.lr_pct_start,
         )
 
         return [optimizer], [scheduler]
