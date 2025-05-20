@@ -50,6 +50,7 @@ class BaseModel(MetricsMixin, L.LightningModule):
             total_steps=self.hparams.total_steps,
             div_factor=self.hparams.lr_div_factor,
             final_div_factor=self.hparams.lr_final_div_factor,
+            pct_start=0.05,
         )
 
         return [optimizer], [scheduler]
