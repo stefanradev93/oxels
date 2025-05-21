@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from oxels.utils import pad_to_even_height_and_width
+
 
 class SimpleDownSample(nn.Module):
     """
@@ -19,12 +21,14 @@ class SimpleDownSample(nn.Module):
         nn.init.zeros_(self.op[1].bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.op(x)
+        x = self.op(x)
+        x = pad_to_even_height_and_width(x)
+        return x
 
 
 if __name__ == "__main__":
     # Test
-    x = torch.randn(2, 16, 64, 64)
+    x = torch.randn(2, 16, 14, 14)
     down = SimpleDownSample(in_channels=16, out_channels=32)
     y = down(x)
     print(f"Input shape: {x.shape} -> DownSample output: {y.shape}")
