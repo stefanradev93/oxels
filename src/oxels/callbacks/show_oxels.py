@@ -5,14 +5,17 @@ import wandb
 
 
 class ShowOxels(L.Callback):
-    def __init__(self, images: torch.Tensor, num_oxels=8, resolution=(64, 64), file_type="jpg"):
+    def __init__(self, images: torch.Tensor, num_oxels=8, resolution=(64, 64), file_type="jpg", every_n_epochs=1):
         super().__init__()
         self.images = torch.as_tensor(images)
         self.num_oxels = num_oxels
         self.resolution = resolution
         self.file_type = file_type
+        self.every_n_epochs = every_n_epochs
 
     def on_validation_epoch_end(self, trainer, pl_module):
+        if trainer.current_epoch % self.every_n_epochs != 0:
+            return
         images = self.images.to(pl_module.device)
         # (batch_size, num_oxels, height, width)
         oxels = pl_module(images)
@@ -38,4 +41,4 @@ class ShowOxels(L.Callback):
 
         oxels = wandb.Image(oxels, caption="Latent Space Visualization", file_type=self.file_type)
 
-        wandb.log({"oxels": oxels})
+        wandb.log({"oxels": oxels}, step=trainer.global_step)
