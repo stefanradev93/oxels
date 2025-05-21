@@ -30,9 +30,9 @@ class UNetModel(BaseModel):
         up_types: BlockType | Sequence[BlockType] = ConvBlock,
         learning_rate: float = 1e-3,
         weight_decay: float = 0.004,
-        div_factor: float = 25.0,
-        final_div_factor: float = 1e4,
-        total_steps: int,
+        lr_div_factor: float = 25.0,
+        lr_final_div_factor: float = 1e4,
+        lr_pct_start: float = 0.05,
     ):
         backbone = UNet(
             in_features=in_features,
@@ -50,8 +50,8 @@ class UNetModel(BaseModel):
             backbone=backbone,
             learning_rate=learning_rate,
             weight_decay=weight_decay,
-            div_factor=div_factor,
-            final_div_factor=final_div_factor,
-            total_steps=total_steps,
+            lr_div_factor=lr_div_factor,
+            lr_final_div_factor=lr_final_div_factor,
+            lr_pct_start=lr_pct_start,
         )
         self.save_hyperparameters()

@@ -26,7 +26,6 @@ class ImageNetModel(BaseModel):
         lr_div_factor: float = 25.0,
         lr_final_div_factor: float = 1e4,
         lr_pct_start: float = 0.05,
-        total_steps: int,
         train_batch_size: int,
         val_batch_size: int,
         image_size: int = 256,
@@ -82,7 +81,6 @@ class ImageNetModel(BaseModel):
             lr_div_factor=lr_div_factor,
             lr_final_div_factor=lr_final_div_factor,
             lr_pct_start=lr_pct_start,
-            total_steps=total_steps,
         )
 
         self.save_hyperparameters()

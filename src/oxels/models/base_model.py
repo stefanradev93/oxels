@@ -19,11 +19,10 @@ class BaseModel(MetricsMixin, L.LightningModule):
         lr_pct_start: float = 0.05,
         lr_div_factor: float = 25.0,
         lr_final_div_factor: float = 1e4,
-        total_steps: int,
     ):
         super().__init__()
         self.save_hyperparameters(
-            learning_rate, weight_decay, lr_pct_start, lr_div_factor, lr_final_div_factor, total_steps, ignore=["backbone"]
+            learning_rate, weight_decay, lr_pct_start, lr_div_factor, lr_final_div_factor, ignore=["backbone"]
         )
         self.backbone = backbone
 
@@ -48,10 +47,13 @@ class BaseModel(MetricsMixin, L.LightningModule):
         scheduler = OneCycleLR(
             optimizer,
             max_lr=lr,
-            total_steps=self.hparams.total_steps,
+            total_steps=self.trainer.estimated_stepping_batches,
             div_factor=self.hparams.lr_div_factor,
             final_div_factor=self.hparams.lr_final_div_factor,
             pct_start=self.hparams.lr_pct_start,
         )
 
-        return [optimizer], [scheduler]
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {"scheduler": scheduler, "interval": "step"},
+        }
