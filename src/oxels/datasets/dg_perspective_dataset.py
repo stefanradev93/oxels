@@ -30,10 +30,12 @@ class DGPerspectiveDataset(Dataset):
         split: Literal["train", "val", "test"] = "train",
         domain_split: Literal["id", "ood"] = "id",
         seed: int = 0,
+        augmentations: callable = None,
     ):
         self.path = Path(path)
         self.split = split
         self.domain_split = domain_split
+        self.augmentations = augmentations
         self.dataset = self._get_dataset(dataset, seed=seed)
         self.transform = PerspectiveTransform(w=w, h=h, frac_keep=frac_keep)
 
@@ -62,7 +64,7 @@ class DGPerspectiveDataset(Dataset):
             case "coloredmnist":
                 from .dg import ColoredMNIST
 
-                return ColoredMNIST(self.path, download=True)
+                return ColoredMNIST(self.path, download=True, transform=self.augmentations)
             case "fmowregion":
                 from .dg import FMoWRegion
 

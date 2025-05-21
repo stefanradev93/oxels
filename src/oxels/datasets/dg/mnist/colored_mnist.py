@@ -11,13 +11,17 @@ class ColoredMNIST(MNISTDataset):
     domain_map = {"L": 0, "M": 1, "H": 2}
     n_classes = 2
 
-    def __init__(self, root: str | Path, download: bool = True):
-        transform = transforms.Compose(
+    def __init__(self, root: str | Path, download: bool = True, transform=None):
+        make_color_ch = transforms.Compose(
             [
                 transforms.ToTensor(),
                 transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
             ]
         )
+        if transform is None:
+            transform = make_color_ch
+        else:
+            transform = transforms.Compose(make_color_ch.transforms + transform.transforms)
 
         domain_transforms = [
             dtransforms.Compose(
