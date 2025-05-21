@@ -1,5 +1,4 @@
 from lightning import LightningModule
-import wandb
 
 
 class MetricsMixin(LightningModule):
@@ -12,26 +11,23 @@ class MetricsMixin(LightningModule):
     def training_step(self, batch, batch_idx, dataloader_idx=0):
         metrics = self.compute_metrics(batch)
         data = {f"training/{key}": value for key, value in metrics.items()}
-        wandb.log(data)
         for key, value in data.items():
-            self.log(key, value)
+            self.log(key, value, on_step=True, on_epoch=True, sync_dist=True, prog_bar=True)
 
         return metrics["loss"]
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         metrics = self.compute_metrics(batch)
         data = {f"validation/{key}": value for key, value in metrics.items()}
-        wandb.log(data)
         for key, value in data.items():
-            self.log(key, value)
+            self.log(key, value, on_step=False, on_epoch=True, sync_dist=True, prog_bar=True)
 
         return metrics["loss"]
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
         metrics = self.compute_metrics(batch)
         data = {f"testing/{key}": value for key, value in metrics.items()}
-        wandb.log(data)
         for key, value in data.items():
-            self.log(key, value)
+            self.log(key, value, on_step=False, on_epoch=True, sync_dist=True)
 
         return metrics["loss"]
