@@ -107,16 +107,10 @@ def objective():
 
     wandb.summary["num_parameters"] = num_parameters
 
-    logger = WandbLogger(
-        save_dir="logs",
-        project="oxels",
-        name=run_name,
-    )
-
     trainer = L.Trainer(
         **trainer_config,
         callbacks=[
-            callbacks.LearningRateMonitor(logging_interval="step"),
+            # callbacks.LearningRateMonitor(logging_interval="step"),
             callbacks.ModelCheckpoint(
                 monitor="validation/loss",
                 mode="min",
@@ -125,8 +119,6 @@ def objective():
             ),
             ShowOxels(images=validation_images),
         ],
-        logger=logger,
-        # val_check_interval=0.1,
     )
 
     try:
@@ -138,7 +130,7 @@ def objective():
         return result
     finally:
         # clean up
-        run.finish()
+        wandb.finish()
 
 
 def main(args):
