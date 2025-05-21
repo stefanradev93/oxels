@@ -13,7 +13,7 @@ class MetricsMixin(LightningModule):
         metrics = self.compute_metrics(batch)
         data = {f"training/{key}": value for key, value in metrics.items()}
         for key, value in data.items():
-            self.log(key, value, on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
+            self.log(key, value)
 
         return metrics["loss"]
 
@@ -21,7 +21,7 @@ class MetricsMixin(LightningModule):
         metrics = self.compute_metrics(batch)
         data = {f"validation/{key}": value for key, value in metrics.items()}
         for key, value in data.items():
-            self.log(key, value, on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
+            self.log(key, value)
 
         return metrics["loss"]
 
@@ -29,6 +29,6 @@ class MetricsMixin(LightningModule):
         metrics = self.compute_metrics(batch)
         data = {f"testing/{key}": value for key, value in metrics.items()}
         for key, value in data.items():
-            self.log(key, value, on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
+            self.log(key, value)
 
         return metrics["loss"]
