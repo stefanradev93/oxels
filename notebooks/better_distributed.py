@@ -121,13 +121,18 @@ def setup():
 def main(args):
     setup()
 
+    size = dist.get_world_size()
+
     study = send_or_recv(create_study)
 
     while True:
         trial = send_or_recv(study.ask)
         value = objective(trial)
-        # merge values from all ranks
-        value = dist.all_reduce(value, op=dist.ReduceOp.SUM) / dist.get_world_size()
+
+        # aggregate the value across all ranks
+        value = torch.tensor(value)
+        dist.all_reduce(value, op=dist.ReduceOp.SUM)
+        value = float(value) / size
 
         study.tell(trial, value)
 
