@@ -74,6 +74,7 @@ def objective(trial: optuna.Trial):
         gradient_clip_val=3.0,
         gradient_clip_algorithm="value",
         precision="16-mixed",
+        enable_checkpointing=False,
     )
 
     trainer.fit(model)
