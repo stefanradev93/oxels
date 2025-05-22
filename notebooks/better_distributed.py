@@ -11,7 +11,7 @@ import os
 import sys
 
 
-from oxels.distribution import rank_zero
+from oxels.distribution import rank_zero, send_or_recv
 
 
 class MinimalModel(L.LightningModule):
@@ -95,50 +95,6 @@ def create_study():
     return study
 
 
-@rank_zero(error=True)
-def broadcast_object(obj: any) -> None:
-    if dist.get_world_size() > 1:
-        object_list = [obj]
-        for _rank in range(1, dist.get_world_size()):
-            dist.send_object_list(object_list, dst=_rank)
-
-
-def recv_object() -> any:
-    rank = dist.get_rank()
-    if rank == 0:
-        raise RuntimeError(f"This function should never be called by rank 0")
-
-    object_list = [None]
-    dist.recv_object_list(object_list, src=0)
-
-    return object_list[0]
-
-
-def send_or_recv(fn, rank=None, group=None):
-    if rank is None:
-        rank = dist.get_rank(group)
-
-    if rank == 0:
-        object = fn()
-        broadcast_object(object)
-    else:
-        object = recv_object()
-
-    return object
-
-def create_or_recv_study(rank=None, group=None) -> optuna.Study:
-    if rank is None:
-        rank = dist.get_rank(group)
-
-    if rank == 0:
-        study = create_study()
-        broadcast_object(study)
-    else:
-        study = recv_object()
-
-    return study
-
-
 def setup():
     # set the seed for reproducibility
     seed = get_job_id()
@@ -168,6 +124,9 @@ def main(args):
     while True:
         trial = send_or_recv(study.ask)
         value = objective(trial)
+        # merge values from all ranks
+        value = dist.all_reduce(value, op=dist.ReduceOp.SUM) / dist.get_world_size()
+
         study.tell(trial, value)
 
     return 0

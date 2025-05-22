@@ -1,7 +1,15 @@
 
 import torch.distributed as dist
 
+
+from collections.abc import Callable, Mapping, Sequence
+from typing import TypeVar
+
 from oxels.utils import allow_args
+
+
+
+T = TypeVar("T")
 
 
 @allow_args
@@ -21,3 +29,62 @@ def rank_zero(fn, verbose=False, error=False):
             print(f"Rank {rank} is running {fn.__name__}")
         return fn(*args, **kwargs)
     return wrapper
+
+
+def recv_object(src: int = 0, group: dist.ProcessGroup = None) -> any:
+    object_list = [None]
+    dist.recv_object_list(object_list, src=src, group=group)
+    return object_list[0]
+
+
+def send_object(obj: any, src: int = None, dst: int | Sequence[int] = None, group: dist.ProcessGroup = None) -> None:
+    if dst is None:
+        if src is None:
+            src = dist.get_rank(group)
+
+        dst = list(range(dist.get_world_size(group)))
+        dst.remove(src)
+
+    object_list = [obj]
+    for rank in dst:
+        dist.send_object_list(object_list, dst=rank)
+
+
+def send_or_recv(fn: Callable[[], T], src_dst: Mapping[int, int | Sequence[int]] = None, rank: int = None, group: dist.ProcessGroup = None) -> T:
+    if rank is None:
+        rank = dist.get_rank(group)
+
+    size = dist.get_world_size(group)
+
+    if src_dst is None:
+        src_dst = {0: list(range(1, size))}
+    else:
+        # ensure the mapping is unique and complete
+        seen_ranks = set()
+        for key, value in src_dst.items():
+            for _rank in [key, *value]:
+                if _rank in seen_ranks:
+                    raise ValueError(f"src_dst mapping must be unique, but rank {key} appears more than once.")
+
+                seen_ranks.add(_rank)
+
+        missing_ranks = seen_ranks - set(range(size))
+        if missing_ranks:
+            raise ValueError(f"src_dst mapping must cover all ranks, but is missing {list(missing_ranks)}")
+
+    dst_src = {}
+    for src, value in src_dst.items():
+        for dst in value:
+            dst_src[dst] = src
+
+    if rank in src_dst:
+        obj = fn()
+        dst = src_dst[rank]
+
+        send_object(obj, dst=dst, group=group)
+    else:
+        src = dst_src[rank]
+
+        obj = recv_object(src=src, group=group)
+
+    return obj
