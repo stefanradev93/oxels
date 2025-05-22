@@ -135,7 +135,12 @@ def main(args):
         dist.all_reduce(value, op=dist.ReduceOp.SUM)
         value = float(value) / size
 
-        study.tell(trial, value)
+        # TODO: make this call less ambiguous
+        #  this essentially only updates the study on rank zero
+        _ = send_or_recv(lambda: study.tell(trial, value))
+
+        # maybe superfluous:
+        dist.barrier()
 
     return 0
 
