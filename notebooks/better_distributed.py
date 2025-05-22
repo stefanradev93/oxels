@@ -62,6 +62,8 @@ def objective(trial: optuna.Trial):
 
     dim = trial.suggest_int("dim", 1, 128)
 
+    dim = send_or_recv(lambda: dim)
+
     model = MinimalModel(dim)
     trainer = L.Trainer(
         max_steps=100,
