@@ -221,6 +221,7 @@ def main(args):
             value = objective(trial)
         except (RuntimeError, MemoryError):
             study.tell(trial, state=optuna.trial.TrialState.FAIL)
+            continue
 
         # aggregate the value across all ranks
         value = torch.tensor(value)
