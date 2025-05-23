@@ -45,8 +45,9 @@ def get_job_id() -> int:
 def sample_configs(trial: optuna.Trial):
     total_steps = 10_000
     warmup_steps = 1_000
-    train_batch_size = 4
+    train_batch_size = 2
     val_batch_size = 4
+    accumulate_grad_batches = 4
     learning_rate = trial.suggest_float("learning_rate", 1e-3, 1e-2, log=True)
     lr_pct_start = warmup_steps / total_steps
     weight_decay = 1e-4
@@ -107,6 +108,7 @@ def sample_configs(trial: optuna.Trial):
         gradient_clip_algorithm="value",
         precision="16-mixed",
         enable_checkpointing=False,
+        accumulate_grad_batches=accumulate_grad_batches,
     )
 
     return model_config, trainer_config
