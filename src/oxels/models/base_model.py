@@ -1,5 +1,6 @@
 import lightning as L
 import torch.nn as nn
+from torch import compile as jit
 
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
@@ -26,9 +27,11 @@ class BaseModel(MetricsMixin, L.LightningModule):
         )
         self.backbone = backbone
 
+    @jit
     def forward(self, x):
         return self.backbone(x)
 
+    @jit
     def compute_loss(self, batch):
         view1, view2, permutation, flags, mask1, mask2 = batch
 
