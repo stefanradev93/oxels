@@ -115,6 +115,7 @@ def sample_configs(trial: optuna.Trial):
         precision="16-mixed",
         enable_checkpointing=False,
         accumulate_grad_batches=accumulate_grad_batches,
+        val_check_interval=0.01,
     )
 
     return model_config, trainer_config
