@@ -45,36 +45,36 @@ def get_job_id() -> int:
 def sample_configs(trial: optuna.Trial):
     max_epochs = 1
     max_steps = 10_000
-    max_time = "00:01:29:00"
+    max_time = "00:02:59:00"
     warmup_steps = 1_000
-    train_batch_size = 2
+    train_batch_size = 4
     val_batch_size = 32
 
     target_batch_size = 256
     accumulate_grad_batches = int(target_batch_size / (train_batch_size * get_world_size()))
     accumulate_grad_batches = max(1, accumulate_grad_batches)
-    learning_rate = trial.suggest_float("learning_rate", 1e-3, 1e-2, log=True)
+    learning_rate = trial.suggest_float("learning_rate", 1e-3, 1e-1, log=True)
     lr_pct_start = warmup_steps / max_steps
-    weight_decay = 1e-4
+    weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
 
     num_stages = trial.suggest_int("num_stages", 4, 6)
-    num_oxels = trial.suggest_int("num_oxels", 32, 96, step=8)
+    num_oxels = trial.suggest_int("num_oxels", 32, 64, step=8)
     # base_channels = trial.suggest_int("base_channels", 32, 96, step=16)
     stage_channels = [
-        trial.suggest_int("stage_channels_0", num_oxels, max(num_oxels, 96), step=8),
-        trial.suggest_int("stage_channels_1", max(num_oxels, 64), 128, step=16),
-        trial.suggest_int("stage_channels_2", 96, 192, step=32),
-        trial.suggest_int("stage_channels_3", 128, 256, step=32),
-        trial.suggest_int("stage_channels_4", 160, 320, step=32),
-        trial.suggest_int("stage_channels_5", 192, 384, step=32),
+        trial.suggest_int("stage_channels_0", num_oxels, max(num_oxels, 64), step=8),
+        trial.suggest_int("stage_channels_1", max(num_oxels, 64), 96, step=16),
+        trial.suggest_int("stage_channels_2", 64, 128, step=32),
+        trial.suggest_int("stage_channels_3", 96, 192, step=32),
+        trial.suggest_int("stage_channels_4", 128, 256, step=32),
+        trial.suggest_int("stage_channels_5", 160, 320, step=32),
     ]
     num_res_blocks = [
-        trial.suggest_int("num_res_blocks_0", 2, 4),
-        trial.suggest_int("num_res_blocks_1", 2, 4),
-        trial.suggest_int("num_res_blocks_2", 3, 6),
-        trial.suggest_int("num_res_blocks_3", 4, 8),
-        trial.suggest_int("num_res_blocks_4", 6, 10),
-        trial.suggest_int("num_res_blocks_5", 8, 12),
+        trial.suggest_int("num_res_blocks_0", 1, 2),
+        trial.suggest_int("num_res_blocks_1", 1, 2),
+        trial.suggest_int("num_res_blocks_2", 2, 4),
+        trial.suggest_int("num_res_blocks_3", 2, 6),
+        trial.suggest_int("num_res_blocks_4", 4, 8),
+        trial.suggest_int("num_res_blocks_5", 6, 8),
     ]
 
     stage_channels = stage_channels[:num_stages]
