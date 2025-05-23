@@ -47,7 +47,7 @@ def sample_configs(trial: optuna.Trial):
     max_steps = 10_000
     max_time = "00:05:45:00"
     warmup_steps = 1_000
-    train_batch_size = 4
+    train_batch_size = 8
     val_batch_size = 32
 
     target_batch_size = 256
@@ -124,9 +124,6 @@ def sample_configs(trial: optuna.Trial):
 def objective(trial: optuna.Trial):
     torch.cuda.empty_cache()
     torch.set_float32_matmul_precision("medium")
-
-    # ensure fallback to eager mode for when jit compilation fails
-    torch._dynamo.config.suppress_errors = True
 
     model_config, trainer_config = send_or_recv(partial(sample_configs, trial))
 
