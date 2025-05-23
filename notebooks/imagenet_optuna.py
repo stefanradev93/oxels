@@ -45,8 +45,8 @@ def get_job_id() -> int:
 def sample_configs(trial: optuna.Trial):
     total_steps = 10_000
     warmup_steps = 1_000
-    train_batch_size = 1
-    val_batch_size = 1
+    train_batch_size = 4
+    val_batch_size = 4
     learning_rate = trial.suggest_float("learning_rate", 1e-3, 1e-2, log=True)
     lr_pct_start = warmup_steps / total_steps
     weight_decay = 1e-4
