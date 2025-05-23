@@ -10,6 +10,7 @@ from optuna.integration.pytorch_lightning import PyTorchLightningPruningCallback
 from torch.utils.data import TensorDataset, DataLoader
 from lightning.pytorch.loggers import WandbLogger
 
+import gc
 import os
 import sys
 import wandb
@@ -202,6 +203,7 @@ def main(args):
     study = send_or_recv(create_study)
 
     while True:
+        gc.collect()
         trial = send_or_recv(study.ask)
         value = objective(trial)
 
