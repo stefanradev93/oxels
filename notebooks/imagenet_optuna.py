@@ -66,7 +66,8 @@ def sample_configs(trial: optuna.Trial):
         trial.suggest_int("num_res_blocks_1", 2, 4),
         trial.suggest_int("num_res_blocks_2", 3, 6),
         trial.suggest_int("num_res_blocks_3", 4, 8),
-        trial.suggest_int("num_res_blocks_4", 6, 8),
+        trial.suggest_int("num_res_blocks_4", 6, 10),
+        trial.suggest_int("num_res_blocks_5", 8, 12),
     ]
 
     stage_channels = stage_channels[:num_stages]
