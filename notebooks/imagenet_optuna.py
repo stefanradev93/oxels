@@ -47,8 +47,8 @@ def sample_configs(trial: optuna.Trial):
     max_steps = 10_000
     max_time = "00:05:45:00"
     warmup_steps = 1_000
-    train_batch_size = 8
-    val_batch_size = 32
+    train_batch_size = 24
+    val_batch_size = 64
 
     target_batch_size = 256
     accumulate_grad_batches = int(target_batch_size / (train_batch_size * get_world_size()))
