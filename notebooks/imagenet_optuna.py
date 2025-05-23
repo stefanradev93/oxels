@@ -43,16 +43,18 @@ def get_job_id() -> int:
 
 
 def sample_configs(trial: optuna.Trial):
-    total_steps = 5_000
-    warmup_steps = 500
+    max_epochs = 1
+    max_steps = 10_000
+    max_time = "00:01:29:00"
+    warmup_steps = 1_000
     train_batch_size = 2
     val_batch_size = 32
 
-    target_batch_size = 128
+    target_batch_size = 256
     accumulate_grad_batches = int(target_batch_size / (train_batch_size * get_world_size()))
     accumulate_grad_batches = max(1, accumulate_grad_batches)
     learning_rate = trial.suggest_float("learning_rate", 1e-3, 1e-2, log=True)
-    lr_pct_start = warmup_steps / total_steps
+    lr_pct_start = warmup_steps / max_steps
     weight_decay = 1e-4
 
     num_stages = trial.suggest_int("num_stages", 4, 6)
@@ -101,8 +103,9 @@ def sample_configs(trial: optuna.Trial):
     )
 
     trainer_config = dict(
-        max_steps=total_steps,
-        max_time="00:02:59:00",
+        max_epochs=max_epochs,
+        max_steps=max_steps,
+        max_time=max_time,
         accelerator="gpu",
         num_nodes=count_nodes(),
         devices=-1,
