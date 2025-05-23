@@ -5,40 +5,21 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
+from lightning.pytorch.callbacks import LearningRateMonitor
+from optuna.integration.pytorch_lightning import PyTorchLightningPruningCallback
 from torch.utils.data import TensorDataset, DataLoader
+from lightning.pytorch.loggers import WandbLogger
 
 import os
 import sys
+import wandb
 
 from functools import partial
 
 
+from oxels.callbacks import ShowOxels
 from oxels.distribution import rank_zero, send_or_recv
 from oxels.models import ImageNetModel
-
-
-class MinimalModel(L.LightningModule):
-    def __init__(self, dim: int):
-        super().__init__()
-        self.dim = dim
-        self.linear = nn.Linear(dim, dim)
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        yhat = self.linear(x)
-        loss = F.mse_loss(yhat, y)
-        self.log("validation/loss", loss)
-        return loss
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
-
-    def train_dataloader(self):
-        x = torch.randn((1024, self.dim))
-        y = 2 * x + 3
-        ds = TensorDataset(x, y)
-        return DataLoader(ds, batch_size=32, shuffle=True)
-
 
 def count_nodes() -> int:
     return int(os.environ.get("SLURM_NNODES", 1))
@@ -61,7 +42,6 @@ def get_job_id() -> int:
 
 
 def sample_configs(trial: optuna.Trial):
-
     total_steps = 15_000
     warmup_steps = 2_000
     train_batch_size = 24
@@ -136,11 +116,40 @@ def objective(trial: optuna.Trial):
     model_config, trainer_config = send_or_recv(partial(sample_configs, trial))
 
     model = ImageNetModel(**model_config)
-    trainer = L.Trainer(**trainer_config)
 
-    trainer.fit(model)
+    num_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    return trainer.callback_metrics["validation/loss"]
+    callbacks = [
+        LearningRateMonitor(),
+        PyTorchLightningPruningCallback(trial, monitor="validation/loss"),
+    ]
+
+    if dist.get_rank() == 0:
+        with torch.device("cpu"):
+            validation_images = [model.val_dataloader().dataset.dataset[i][0] for i in range(4)]
+            validation_images = torch.stack(validation_images)
+
+        show_oxels = ShowOxels(validation_images)
+        callbacks.append(show_oxels)
+
+    run = wandb.init(
+        entity="kl_divergence-rensselaer-polytechnic-institute",
+        project="oxels",
+        config=model_config | trainer_config,
+        dir="wandb_results",
+    )
+
+    logger = WandbLogger(experiment=run)
+
+    wandb.summary["num_parameters"] = num_parameters
+
+    trainer = L.Trainer(**trainer_config, callbacks=callbacks, logger=logger)
+
+    try:
+        trainer.fit(model)
+        return trainer.callback_metrics["validation/loss"]
+    finally:
+        run.finish()
 
 
 @rank_zero(error=True)
@@ -151,8 +160,8 @@ def create_study():
     study = optuna.create_study(
         direction="minimize",
         pruner=pruner,
-        storage="sqlite:///study.db",
-        study_name="study",
+        storage="sqlite:///imagenet-optuna.db",
+        study_name="imagenet-optuna",
         load_if_exists=True,
     )
 
