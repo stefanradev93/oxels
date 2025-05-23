@@ -125,6 +125,9 @@ def objective(trial: optuna.Trial):
     torch.cuda.empty_cache()
     torch.set_float32_matmul_precision("medium")
 
+    # ensure fallback to eager mode for when jit compilation fails
+    torch._dynamo.config.suppress_errors = True
+
     model_config, trainer_config = send_or_recv(partial(sample_configs, trial))
 
     model = ImageNetModel(**model_config)
@@ -181,9 +184,6 @@ def create_study():
 
 
 def setup():
-    # load the gcc module for jit compilation
-    os.system("module load gcc")
-
     # set the seed for reproducibility
     seed = get_job_id()
     L.seed_everything(seed)
