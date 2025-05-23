@@ -45,7 +45,7 @@ def get_job_id() -> int:
 def sample_configs(trial: optuna.Trial):
     max_epochs = 1
     max_steps = 10_000
-    max_time = "00:02:59:00"
+    max_time = "00:05:45:00"
     warmup_steps = 1_000
     train_batch_size = 4
     val_batch_size = 32
