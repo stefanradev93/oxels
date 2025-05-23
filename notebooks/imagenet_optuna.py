@@ -10,8 +10,11 @@ from torch.utils.data import TensorDataset, DataLoader
 import os
 import sys
 
+from functools import partial
+
 
 from oxels.distribution import rank_zero, send_or_recv
+from oxels.models import ImageNetModel
 
 
 class MinimalModel(L.LightningModule):
@@ -57,16 +60,62 @@ def get_job_id() -> int:
     return int(os.environ.get("SLURM_JOB_ID", 0))
 
 
-def objective(trial: optuna.Trial):
-    torch.cuda.empty_cache()
+def sample_configs(trial: optuna.Trial):
 
-    dim = trial.suggest_int("dim", 1, 128)
+    total_steps = 15_000
+    warmup_steps = 2_000
+    train_batch_size = 24
+    val_batch_size = 64
+    learning_rate = trial.suggest_float("learning_rate", 1e-3, 1e-2, log=True)
+    lr_pct_start = warmup_steps / total_steps
+    weight_decay = 1e-4
 
-    dim = send_or_recv(lambda: dim)
+    num_stages = trial.suggest_int("num_stages", 4, 6)
+    num_oxels = trial.suggest_int("num_oxels", 32, 96, step=8)
+    # base_channels = trial.suggest_int("base_channels", 32, 96, step=16)
+    stage_channels = [
+        trial.suggest_int("stage_channels_0", num_oxels, max(num_oxels, 96), step=32),
+        trial.suggest_int("stage_channels_1", max(num_oxels, 64), 128, step=32),
+        trial.suggest_int("stage_channels_2", 96, 192, step=32),
+        trial.suggest_int("stage_channels_3", 128, 256, step=32),
+        trial.suggest_int("stage_channels_4", 160, 320, step=32),
+        trial.suggest_int("stage_channels_5", 192, 384, step=32),
+    ]
+    num_res_blocks = [
+        trial.suggest_int("num_res_blocks_0", 2, 4),
+        trial.suggest_int("num_res_blocks_1", 2, 4),
+        trial.suggest_int("num_res_blocks_2", 3, 6),
+        trial.suggest_int("num_res_blocks_3", 4, 8),
+        trial.suggest_int("num_res_blocks_4", 6, 8),
+    ]
 
-    model = MinimalModel(dim)
-    trainer = L.Trainer(
-        max_steps=100,
+    stage_channels = stage_channels[:num_stages]
+    num_res_blocks = num_res_blocks[:num_stages]
+
+    dropout_stages = [-2, -1]
+    dropout = 0.1
+
+    attention_stages = [-2, -1]
+
+    model_config = dict(
+        stage_channels=stage_channels,
+        num_res_blocks=num_res_blocks,
+        num_oxels=num_oxels,
+        learning_rate=learning_rate,
+        weight_decay=weight_decay,
+        dropout_stages=dropout_stages,
+        dropout=dropout,
+        attention_stages=attention_stages,
+        lr_div_factor=25.0,
+        lr_final_div_factor=1e4,
+        lr_pct_start=lr_pct_start,
+        train_batch_size=train_batch_size,
+        val_batch_size=val_batch_size,
+        image_size=256,
+    )
+
+    trainer_config = dict(
+        max_steps=total_steps,
         accelerator="gpu",
         num_nodes=count_nodes(),
         devices=-1,
@@ -76,6 +125,18 @@ def objective(trial: optuna.Trial):
         precision="16-mixed",
         enable_checkpointing=False,
     )
+
+    return model_config, trainer_config
+
+
+def objective(trial: optuna.Trial):
+    torch.cuda.empty_cache()
+    torch.set_float32_matmul_precision("medium")
+
+    model_config, trainer_config = send_or_recv(partial(sample_configs, trial))
+
+    model = ImageNetModel(**model_config)
+    trainer = L.Trainer(**trainer_config)
 
     trainer.fit(model)
 
