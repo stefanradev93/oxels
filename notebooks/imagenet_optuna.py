@@ -177,6 +177,9 @@ def create_study():
 
 
 def setup():
+    # load the gcc module for jit compilation
+    os.system("module load gcc")
+
     # set the seed for reproducibility
     seed = get_job_id()
     L.seed_everything(seed)
@@ -210,7 +213,10 @@ def main(args):
     while True:
         gc.collect()
         trial = send_or_recv(study.ask)
-        value = objective(trial)
+        try:
+            value = objective(trial)
+        except (RuntimeError, MemoryError):
+            study.tell(trial, state=optuna.trial.TrialState.FAIL)
 
         # aggregate the value across all ranks
         value = torch.tensor(value)
