@@ -51,6 +51,9 @@ class ImageNet(Dataset):
         view2 = view2.transpose(2, 0, 1)
         return view1, view2, permutation, flags, mask1, mask2
 
+    def __len__(self):
+        return len(self.dataset)
+
     def download(self, path):
         path.mkdir(parents=True, exist_ok=True)
 
