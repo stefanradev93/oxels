@@ -63,10 +63,11 @@ class ImageNetModel(BaseModel):
         self.save_hyperparameters()
 
     def train_dataloader(self):
-        if self.hparams.image_size != 256:
-            transform = transforms.Compose([transforms.ToTensor(), transforms.Resize(self.hparams.image_size)])
-        else:
-            transform = transforms.ToTensor()
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.7, 1.0)),
+        ])
 
         dataset = ImageNet(split="train", transform=transform)
 
@@ -80,10 +81,11 @@ class ImageNetModel(BaseModel):
         )
 
     def val_dataloader(self):
-        if self.hparams.image_size != 256:
-            transform = transforms.Compose([transforms.ToTensor(), transforms.Resize(self.hparams.image_size)])
-        else:
-            transform = transforms.ToTensor()
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.7, 1.0)),
+        ])
 
         dataset = ImageNet(split="val", transform=transform)
 
