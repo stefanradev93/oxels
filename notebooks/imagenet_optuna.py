@@ -181,6 +181,9 @@ def setup():
     os.environ["RANK"] = str(rank)
     os.environ["WORLD_SIZE"] = str(size)
 
+    os.environ.setdefault("MASTER_ADDR", "localhost")
+    os.environ.setdefault("MASTER_PORT", "12355")
+
     # initialize the process group
     dist.init_process_group(backend="gloo", rank=rank, world_size=size)
 
