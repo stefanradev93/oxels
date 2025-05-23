@@ -2,7 +2,8 @@ from os import PathLike
 from pathlib import Path
 
 from torch.utils.data import Dataset
-from torchvision.datasets import ImageNet as ImageNetVision
+from torchvision.datasets import ImageFolder
+from torchvision.datasets.imagenet import parse_train_archive, parse_val_archive
 from torchvision.datasets.utils import check_integrity, download_url, extract_archive
 
 from oxels.transforms import PerspectiveTransform
@@ -12,7 +13,6 @@ class ImageNet(Dataset):
     url = "https://image-net.org/data/ILSVRC/2012/"
 
     file_hashes = {
-        "ILSVRC2012_devkit_t12.tar.gz": "fa75699e90414af021442c21a62c3abf",
         "ILSVRC2012_img_train.tar": "1d675b47d978889d74fa0da5fadfb00e",
         "ILSVRC2012_img_val.tar": "29b22e2961454d5413ddabcf34fc5622",
     }
@@ -33,7 +33,7 @@ class ImageNet(Dataset):
         self.path = Path(path) / "ImageNet1K"
         self.split = split
         self.download(self.path)
-        self.dataset = ImageNetVision(self.path, split, transform=transform)
+        self.dataset = ImageFolder(self.path / self.split, transform=transform)
         self.transform = PerspectiveTransform(w=w, h=h, frac_keep=frac_keep)
 
     def __getitem__(self, item):
@@ -59,3 +59,7 @@ class ImageNet(Dataset):
                 raise RuntimeError(f"File {filepath} not found or corrupted.")
             else:
                 print(f"Found and verified {file} at {path} with hash {target_hash}.")
+
+        # let torchvision extract the dataset
+        parse_train_archive(path, "ILSVRC2012_img_train.tar")
+        parse_val_archive(path, "ILSVRC2012_img_val.tar")
