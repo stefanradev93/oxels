@@ -66,7 +66,7 @@ class ImageNetModel(BaseModel):
         if self.hparams.image_size != 256:
             transform = transforms.Compose([transforms.ToTensor(), transforms.Resize(self.hparams.image_size)])
         else:
-            transform = None
+            transform = transforms.ToTensor()
 
         dataset = ImageNet(split="train", transform=transform)
 
@@ -83,7 +83,7 @@ class ImageNetModel(BaseModel):
         if self.hparams.image_size != 256:
             transform = transforms.Compose([transforms.ToTensor(), transforms.Resize(self.hparams.image_size)])
         else:
-            transform = None
+            transform = transforms.ToTensor()
 
         dataset = ImageNet(split="val", transform=transform)
 

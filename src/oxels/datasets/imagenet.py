@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.imagenet import parse_train_archive, parse_val_archive
 from torchvision.datasets.utils import check_integrity, download_url, extract_archive
+from torchvision.transforms import ToTensor
 
 from oxels.transforms import PerspectiveTransform
 
@@ -27,7 +28,7 @@ class ImageNet(Dataset):
         h: int = 256,
         frac_keep: float = 0.125,
         split: str = "train",
-        transform=None,
+        transform=ToTensor(),
     ):
         super().__init__()
         self.path = Path(path) / "ImageNet1K"
