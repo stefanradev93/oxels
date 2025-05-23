@@ -31,6 +31,7 @@ class ImageNet(Dataset):
     ):
         super().__init__()
         self.path = Path(path) / "ImageNet1K"
+        self.split = split
         self.download(self.path)
         self.dataset = ImageNetVision(self.path, split, transform=transform)
         self.transform = PerspectiveTransform(w=w, h=h, frac_keep=frac_keep)
@@ -42,6 +43,10 @@ class ImageNet(Dataset):
 
     def download(self, path):
         path.mkdir(parents=True, exist_ok=True)
+
+        if (path / self.split).is_dir():
+            print(f"ImageNet1K split {self.split} already exists at {path}. Skipping download.")
+            return
 
         for file, target_hash in self.file_hashes.items():
             url = self.url + file
