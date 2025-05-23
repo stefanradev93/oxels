@@ -1,6 +1,7 @@
 from os import PathLike
 from pathlib import Path
 
+import torch
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.imagenet import parse_train_archive, parse_val_archive
@@ -38,9 +39,17 @@ class ImageNet(Dataset):
         self.transform = PerspectiveTransform(w=w, h=h, frac_keep=frac_keep)
 
     def __getitem__(self, item):
-        rgb, label = self.dataset[item]
-        view1, view2, indices, flags, mask1, mask2 = self.transform.get_views_and_permutation(rgb)
-        return view1, view2, label, indices, flags, mask1, mask2
+        with torch.device("cpu"):
+            rgb, label = self.dataset[item]
+        rgb = rgb.numpy()
+        rgb = rgb.transpose(1, 2, 0)
+
+        # this needs channels last
+        view1, view2, permutation, flags, mask1, mask2 = self.transform.get_views_and_permutation(rgb)
+
+        view1 = view1.transpose(2, 0, 1)
+        view2 = view2.transpose(2, 0, 1)
+        return view1, view2, permutation, flags, mask1, mask2
 
     def download(self, path):
         path.mkdir(parents=True, exist_ok=True)
