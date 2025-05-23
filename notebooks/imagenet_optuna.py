@@ -55,8 +55,8 @@ def sample_configs(trial: optuna.Trial):
     num_oxels = trial.suggest_int("num_oxels", 32, 96, step=8)
     # base_channels = trial.suggest_int("base_channels", 32, 96, step=16)
     stage_channels = [
-        trial.suggest_int("stage_channels_0", num_oxels, max(num_oxels, 96), step=32),
-        trial.suggest_int("stage_channels_1", max(num_oxels, 64), 128, step=32),
+        trial.suggest_int("stage_channels_0", num_oxels, max(num_oxels, 96), step=8),
+        trial.suggest_int("stage_channels_1", max(num_oxels, 64), 128, step=16),
         trial.suggest_int("stage_channels_2", 96, 192, step=32),
         trial.suggest_int("stage_channels_3", 128, 256, step=32),
         trial.suggest_int("stage_channels_4", 160, 320, step=32),
