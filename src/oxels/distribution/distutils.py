@@ -50,10 +50,8 @@ def send_object(obj: any, src: int = None, dst: int | Sequence[int] = None, grou
         dist.send_object_list(object_list, dst=rank)
 
 
-def send_or_recv(fn: Callable[[], T], src_dst: Mapping[int, int | Sequence[int]] = None, rank: int = None, group: dist.ProcessGroup = None) -> T:
-    if rank is None:
-        rank = dist.get_rank(group)
-
+def send_or_recv(fn: Callable[[], T], src_dst: Mapping[int, int | Sequence[int]] = None, group: dist.ProcessGroup = None) -> T:
+    rank = dist.get_rank(group)
     size = dist.get_world_size(group)
 
     if src_dst is None:
@@ -88,3 +86,34 @@ def send_or_recv(fn: Callable[[], T], src_dst: Mapping[int, int | Sequence[int]]
         obj = recv_object(src=src, group=group)
 
     return obj
+
+
+def all_try(fn: Callable[[], T], group: dist.ProcessGroup = None) -> (Sequence[T | None], Sequence[Exception | None]):
+    try:
+        value = fn()
+        error = None
+    except Exception as e:
+        value = None
+        error = e
+
+    size = dist.get_world_size(group)
+
+    results = {}
+    for i in range(size):
+        src = i
+        dst = list(range(size))
+        dst.remove(src)
+
+        results[i] = send_or_recv(lambda: (value, error), src_dst={src: dst}, group=group)
+
+    values = [v[0] for v in results.values()]
+    errors = [v[1] for v in results.values()]
+
+    return values, errors
+
+
+def call_once(fn: Callable[[], T], rank: int = 0, group: dist.ProcessGroup = None) -> T:
+    src = rank
+    dst = list(range(dist.get_world_size(group)))
+    dst.remove(src)
+    return send_or_recv(fn, src_dst={src: dst}, group=group)

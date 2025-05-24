@@ -19,7 +19,7 @@ from functools import partial
 
 
 from oxels.callbacks import ShowOxels
-from oxels.distribution import rank_zero, send_or_recv
+from oxels.distribution import all_try, call_once, rank_zero, send_or_recv
 from oxels.models import ImageNetModel
 
 def count_nodes() -> int:
@@ -207,33 +207,23 @@ def setup():
 def main(args):
     setup()
 
-    size = dist.get_world_size()
-
     study = send_or_recv(create_study)
 
     while True:
         gc.collect()
         trial = send_or_recv(study.ask)
-        try:
-            value = objective(trial)
-        except (RuntimeError, MemoryError):
-            study.tell(trial, state=optuna.trial.TrialState.FAIL)
+
+        values, errors = all_try(lambda: objective(trial))
+        if any(errors):
+            errors = [e for e in errors if e is not None]
+            if any(not isinstance(e, optuna.TrialPruned) for e in errors):
+                call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.FAIL))
+                continue
+            call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.PRUNED))
             continue
-        except optuna.TrialPruned:
-            study.tell(trial, state=optuna.trial.TrialState.PRUNED)
-            continue
 
-        # aggregate the value across all ranks
-        value = torch.tensor(value)
-        dist.all_reduce(value, op=dist.ReduceOp.SUM)
-        value = float(value) / size
-
-        # TODO: make this call less ambiguous
-        #  this essentially only updates the study on rank zero
-        _ = send_or_recv(lambda: study.tell(trial, value))
-
-        # maybe superfluous:
-        dist.barrier()
+        value = torch.mean(values)
+        call_once(lambda: study.tell(trial, value))
 
     return 0
 
