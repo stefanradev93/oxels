@@ -216,10 +216,20 @@ def main(args):
         values, errors = all_try(lambda: objective(trial))
         if any(errors):
             errors = [e for e in errors if e is not None]
-            if any(not isinstance(e, optuna.TrialPruned) for e in errors):
-                call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.FAIL))
+            if not all(isinstance(e, optuna.TrialPruned) for e in errors):
+                try:
+                    call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.FAIL))
+                except ValueError:
+                    # study was already closed, nothing to do
+                    pass
+
                 continue
-            call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.PRUNED))
+            try:
+                call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.PRUNED))
+            except ValueError:
+                # study was already closed, nothing to do
+                pass
+
             continue
 
         value = torch.mean(values)
