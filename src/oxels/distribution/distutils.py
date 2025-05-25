@@ -90,6 +90,8 @@ def send_or_recv(fn: Callable[[], T], src_dst: Mapping[int, int | Sequence[int]]
 
 def all_try(fn: Callable[[], T], group: dist.ProcessGroup = None) -> (Sequence[T | None], Sequence[Exception | None]):
     try:
+        # TODO: this assumes no blocking distributed operations are in fn, like send_or_recv
+        #  can we change this? It's problematic if some ranks are spinning while others have raised an exception
         value = fn()
         error = None
     except Exception as e:
@@ -104,6 +106,7 @@ def all_try(fn: Callable[[], T], group: dist.ProcessGroup = None) -> (Sequence[T
         dst = list(range(size))
         dst.remove(src)
 
+        # TODO: could just use all_gather_object
         results[i] = send_or_recv(lambda: (value, error), src_dst={src: dst}, group=group)
 
     values = [v[0] for v in results.values()]
@@ -112,8 +115,7 @@ def all_try(fn: Callable[[], T], group: dist.ProcessGroup = None) -> (Sequence[T
     return values, errors
 
 
-def call_once(fn: Callable[[], T], rank: int = 0, group: dist.ProcessGroup = None) -> T:
-    src = rank
-    dst = list(range(dist.get_world_size(group)))
-    dst.remove(src)
-    return send_or_recv(fn, src_dst={src: dst}, group=group)
+def call_once(fn: Callable[[], any], group: dist.ProcessGroup = None) -> None:
+    rank = dist.get_rank(group)
+    if rank == 0:
+        fn()
