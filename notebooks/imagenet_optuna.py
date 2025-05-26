@@ -14,6 +14,7 @@ import gc
 import os
 import sys
 import wandb
+import numpy as np
 
 from functools import partial
 
@@ -159,7 +160,7 @@ def objective(trial: optuna.Trial):
 
     try:
         trainer.fit(model)
-        return trainer.callback_metrics["validation/loss"]
+        return trainer.callback_metrics["validation/loss"].item()
     finally:
         run.finish()
 
@@ -232,7 +233,7 @@ def main(args):
 
             continue
 
-        value = torch.mean(values)
+        value = np.mean(values)
         call_once(lambda: study.tell(trial, value))
 
     return 0
