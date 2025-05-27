@@ -22,8 +22,8 @@ def get_configs():
     max_steps = 300_000
     max_time = "00:05:30:00"
     warmup_steps = 2_000
-    train_batch_size = 24
-    val_batch_size = 64
+    train_batch_size = 16
+    val_batch_size = 32
 
     target_batch_size = 2048
     accumulate_grad_batches = int(target_batch_size / (train_batch_size * get_world_size()))
