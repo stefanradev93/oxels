@@ -168,7 +168,7 @@ def objective(trial: optuna.Trial):
 @rank_zero(error=True)
 def create_study():
     pruner = optuna.pruners.HyperbandPruner()
-    pruner = optuna.pruners.PatientPruner(pruner, patience=3, min_delta=1e-3)
+    pruner = optuna.pruners.PatientPruner(pruner, patience=10)
 
     study = optuna.create_study(
         direction="minimize",
@@ -210,32 +210,33 @@ def main(args):
 
     study = send_or_recv(create_study)
 
-    while True:
-        gc.collect()
-        trial = send_or_recv(study.ask)
+    trial = send_or_recv(study.ask)
 
-        values, errors = all_try(lambda: objective(trial))
-        if any(errors):
-            errors = [e for e in errors if e is not None]
-            if not all(isinstance(e, optuna.TrialPruned) for e in errors):
-                try:
-                    call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.FAIL))
-                except ValueError:
-                    # study was already closed, nothing to do
-                    pass
-
-                continue
+    values, errors = all_try(lambda: objective(trial))
+    if any(errors):
+        errors = [e for e in errors if e is not None]
+        if not all(isinstance(e, optuna.TrialPruned) for e in errors):
             try:
-                call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.PRUNED))
+                call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.FAIL))
             except ValueError:
                 # study was already closed, nothing to do
                 pass
 
-            continue
+            print(f"Trial terminated due to errors: {'\n'.join(str(e) for e in errors)}")
+            return 0
+        try:
+            call_once(lambda: study.tell(trial, state=optuna.trial.TrialState.PRUNED))
+        except ValueError:
+            # study was already closed, nothing to do
+            pass
 
-        value = np.mean(values)
-        call_once(lambda: study.tell(trial, value))
+        print(f"Trial was pruned.")
+        return 0
 
+    value = np.mean(values)
+    call_once(lambda: study.tell(trial, value))
+
+    print(f"Trial finished with value: {value:.3f}")
     return 0
 
 
