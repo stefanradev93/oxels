@@ -103,6 +103,7 @@ def train(model_config, trainer_config):
         callbacks.append(show_oxels)
 
     run = wandb.init(
+        name="imagenet",
         entity="kl_divergence-rensselaer-polytechnic-institute",
         project="oxels",
         config=model_config | trainer_config,
@@ -113,6 +114,7 @@ def train(model_config, trainer_config):
 
     logger = WandbLogger(experiment=run)
 
+    wandb.summary["effective_batch_size"] = model_config["train_batch_size"] * trainer_config["accumulate_grad_batches"] * get_world_size()
     wandb.summary["num_parameters"] = num_parameters
 
     trainer = L.Trainer(**trainer_config, callbacks=callbacks, logger=logger)
