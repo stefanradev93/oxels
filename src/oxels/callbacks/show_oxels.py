@@ -5,20 +5,23 @@ import wandb
 
 
 class ShowOxels(L.Callback):
-    def __init__(self, images: torch.Tensor, num_oxels=8, resolution=(64, 64), file_type="jpg", every_n_epochs=1):
+    def __init__(self, images: torch.Tensor, num_oxels=8, resolution=(64, 64), file_type="jpg", every_n_epochs=1, caption=None):
         super().__init__()
         self.images = torch.as_tensor(images)
         self.num_oxels = num_oxels
         self.resolution = resolution
         self.file_type = file_type
         self.every_n_epochs = every_n_epochs
+        self.caption = caption if caption is not None else "Latent Space Visualization"
 
     def on_validation_epoch_end(self, trainer, pl_module):
         if trainer.current_epoch % self.every_n_epochs != 0:
             return
         images = self.images.to(pl_module.device)
         # (batch_size, num_oxels, height, width)
-        oxels = pl_module(images)
+        # also want to show oxels during finetuning and forward pass is different for combined model thus need to call
+        # backbone directly
+        oxels = pl_module.backbone(images)
 
         oxels = oxels[:, : self.num_oxels]
 
@@ -39,6 +42,6 @@ class ShowOxels(L.Callback):
         # ensure wandb knows these are grayscale
         oxels = oxels[None]
 
-        oxels = wandb.Image(oxels, caption="Latent Space Visualization", file_type=self.file_type)
+        oxels = wandb.Image(oxels, caption=self.caption, file_type=self.file_type)
 
-        wandb.log({"oxels": oxels, "trainer/global_step":trainer.global_step})
+        wandb.log({self.caption: oxels, "trainer/global_step": trainer.global_step})
