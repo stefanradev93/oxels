@@ -1,140 +1,136 @@
 import lightning as L
-import optuna
-from optuna.integration import PyTorchLightningPruningCallback
-import torch
-from lightning.pytorch import callbacks
+from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 
+import torch
 import wandb
+
+from pathlib import Path
+
 from oxels.callbacks import ShowOxels
+from oxels.distribution import count_nodes, get_rank, get_world_size
 from oxels.models import ImageNetModel
 
 
-def objective():
-    torch.cuda.empty_cache()
+def setup():
+    L.seed_everything(42)
     torch.set_float32_matmul_precision("medium")
 
-    print("Device Count:", torch.cuda.device_count())
 
-    total_steps = 300_000
-    image_size = 64
-    num_nodes = 2
-    num_devices = 4
-    train_batch_size = 128
-    val_batch_size = 256
-    learning_rate = 3e-4
-    lr_pct_start = 0.01
+def get_configs():
+    max_epochs = None
+    max_steps = 300_000
+    max_time = "00:05:30:00"
+    warmup_steps = 2_000
+    train_batch_size = 24
+    val_batch_size = 64
+
+    target_batch_size = 2048
+    accumulate_grad_batches = int(target_batch_size / (train_batch_size * get_world_size()))
+    accumulate_grad_batches = max(1, accumulate_grad_batches)
+    learning_rate = 1e-3
+    lr_pct_start = warmup_steps / max_steps
     weight_decay = 1e-4
 
-    num_stages = 4
     num_oxels = 64
-    base_channels = 64
-    stage_channels = [64, 128, 128, 256]
-    num_res_blocks = [1, 2, 4, 6]
+
+    stage_channels = [64, 96, 128, 192, 256]
+    num_res_blocks = [2, 2, 4, 6, 6]
 
     dropout_stages = [-2, -1]
     dropout = 0.1
 
-    attention_stages = [stage for stage in range(4, num_stages)]
+    attention_stages = [-2, -1]
 
     model_config = dict(
         stage_channels=stage_channels,
         num_res_blocks=num_res_blocks,
         num_oxels=num_oxels,
+        learning_rate=learning_rate,
+        weight_decay=weight_decay,
         dropout_stages=dropout_stages,
         dropout=dropout,
         attention_stages=attention_stages,
-        learning_rate=learning_rate,
-        weight_decay=weight_decay,
-        lr_pct_start=lr_pct_start,
         lr_div_factor=25.0,
         lr_final_div_factor=1e4,
-        total_steps=total_steps,
+        lr_pct_start=lr_pct_start,
         train_batch_size=train_batch_size,
         val_batch_size=val_batch_size,
-        image_size=image_size,
+        image_size=256,
     )
 
     trainer_config = dict(
+        max_epochs=max_epochs,
+        max_steps=max_steps,
+        max_time=max_time,
+        accelerator="gpu",
+        num_nodes=count_nodes(),
+        devices=-1,
+        strategy="ddp",
         gradient_clip_val=3.0,
         gradient_clip_algorithm="value",
-        max_steps=total_steps,
-        accelerator="gpu",
-        strategy="ddp",
-        devices=num_devices,
         precision="16-mixed",
-        num_nodes=num_nodes,
+        accumulate_grad_batches=accumulate_grad_batches,
+        val_check_interval=0.1,
     )
 
+    return model_config, trainer_config
+
+
+def train(model_config, trainer_config):
     model = ImageNetModel(**model_config)
 
-    with torch.device("cpu"):
-        validation_images = [model.val_dataloader().dataset.dataset[i][0] for i in range(4)]
-        validation_images = torch.stack(validation_images)
+    num_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    num_parameters = sum(p.numel() for p in model.parameters())
+    dirpath = "checkpoints"
+    filename = "imagenet.ckpt"
+    ckpt_path = Path(dirpath) / filename
+    callbacks = [
+        LearningRateMonitor(),
+        ModelCheckpoint(dirpath=dirpath, filename=filename, monitor="validation/loss", save_top_k=5, save_last=True, save_on_train_epoch_end=True, mode="min"),
+    ]
 
-    config = model_config | trainer_config
+    if not ckpt_path.is_file():
+        print(f"Checkpoint {ckpt_path} not found, starting from scratch.")
+        ckpt_path = None
 
-    # grab the few key trial.params you care about
-    lr = learning_rate
-    bc = base_channels
-    ns = num_stages
-    ox = num_oxels
-    n_params = num_parameters / 1e6
+    if get_rank() == 0:
+        with torch.device("cpu"):
+            validation_images = [model.val_dataloader().dataset.dataset[i][0] for i in range(4)]
+            validation_images = torch.stack(validation_images)
 
-    # build a short, human-readable name
-    run_name = (
-        f"CIFAR64-lr{lr:.0e}_bc{bc}_stg{ns}_ox{ox}_"
-        f"{n_params:.1f}M"
-    )
+        show_oxels = ShowOxels(validation_images)
+        callbacks.append(show_oxels)
 
     run = wandb.init(
         entity="kl_divergence-rensselaer-polytechnic-institute",
         project="oxels",
-        config=config,
-        name=run_name,
+        config=model_config | trainer_config,
         dir="wandb_results",
+        id="imagenet",
+        resume="allow",
     )
 
-    wandb.define_metric("training/step")
-    wandb.define_metric("validation/step")
-    wandb.define_metric("testing/step")
-
-    wandb.define_metric("training/*", step_metric="training/step")
-    wandb.define_metric("validation/*", step_metric="validation/step")
-    wandb.define_metric("testing/*", step_metric="testing/step")
+    logger = WandbLogger(experiment=run)
 
     wandb.summary["num_parameters"] = num_parameters
 
-    trainer = L.Trainer(
-        **trainer_config,
-        callbacks=[
-            # callbacks.LearningRateMonitor(logging_interval="step"),
-            callbacks.ModelCheckpoint(
-                monitor="validation/loss",
-                mode="min",
-                save_top_k=1,
-                filename="best_model",
-            ),
-            ShowOxels(images=validation_images),
-        ],
-    )
+    trainer = L.Trainer(**trainer_config, callbacks=callbacks, logger=logger)
 
     try:
-        trainer.fit(model)
-
-        result = trainer.callback_metrics["validation/loss"]
-        wandb.summary["result"] = result
-
-        return result
+        trainer.fit(model, ckpt_path=ckpt_path)
     finally:
-        # clean up
-        wandb.finish()
+        run.finish()
+
 
 
 def main(args):
-    objective()
+    setup()
+
+    model_config, trainer_config = get_configs()
+    train(model_config, trainer_config)
+
+    return 0
 
 
 if __name__ == "__main__":
