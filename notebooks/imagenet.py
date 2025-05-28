@@ -110,6 +110,7 @@ def train(model_config, trainer_config):
         dir="wandb_results",
         id="imagenet",
         resume="allow",
+        settings=wandb.Settings(init_timeout=600),
     )
 
     logger = WandbLogger(experiment=run)
