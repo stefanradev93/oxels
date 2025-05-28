@@ -20,27 +20,8 @@ from functools import partial
 
 
 from oxels.callbacks import ShowOxels
-from oxels.distribution import all_try, call_once, rank_zero, send_or_recv
+from oxels.distribution import all_try, call_once, count_nodes, get_job_id, get_local_rank, get_rank, get_world_size, rank_zero, send_or_recv
 from oxels.models import ImageNetModel
-
-def count_nodes() -> int:
-    return int(os.environ.get("SLURM_NNODES", 1))
-
-
-def get_local_rank() -> int:
-    return int(os.environ.get("SLURM_PROCID", 0)) % int(os.environ.get("SLURM_NTASKS_PER_NODE", 1))
-
-
-def get_rank() -> int:
-    return int(os.environ.get("SLURM_PROCID", 0))
-
-
-def get_world_size() -> int:
-    return int(os.environ.get("SLURM_NTASKS", 1))
-
-
-def get_job_id() -> int:
-    return int(os.environ.get("SLURM_JOB_ID", 0))
 
 
 def sample_configs(trial: optuna.Trial):

@@ -1,15 +1,34 @@
 
 import torch.distributed as dist
 
+import os
 
 from collections.abc import Callable, Mapping, Sequence
 from typing import TypeVar
 
 from oxels.utils import allow_args
 
-
-
 T = TypeVar("T")
+
+
+def count_nodes() -> int:
+    return int(os.environ.get("SLURM_NNODES", 1))
+
+
+def get_local_rank() -> int:
+    return int(os.environ.get("SLURM_PROCID", 0)) % int(os.environ.get("SLURM_NTASKS_PER_NODE", 1))
+
+
+def get_rank() -> int:
+    return int(os.environ.get("SLURM_PROCID", 0))
+
+
+def get_world_size() -> int:
+    return int(os.environ.get("SLURM_NTASKS", 1))
+
+
+def get_job_id() -> int:
+    return int(os.environ.get("SLURM_JOB_ID", 0))
 
 
 @allow_args
