@@ -102,21 +102,35 @@ def train(model_config, trainer_config):
         show_oxels = ShowOxels(validation_images)
         callbacks.append(show_oxels)
 
-    run = wandb.init(
-        name="imagenet",
-        entity="kl_divergence-rensselaer-polytechnic-institute",
-        project="oxels",
-        config=model_config | trainer_config,
-        dir="wandb_results",
-        id="imagenet",
-        resume="allow",
-        settings=wandb.Settings(init_timeout=600),
-    )
+        run = wandb.init(
+            name="imagenet",
+            entity="kl_divergence-rensselaer-polytechnic-institute",
+            project="oxels",
+            config=model_config | trainer_config,
+            dir="wandb_results",
+            id="imagenet",
+            resume="allow",
+            settings=wandb.Settings(init_timeout=600),
+        )
 
-    logger = WandbLogger(experiment=run)
+        logger = WandbLogger(experiment=run)
 
-    wandb.summary["effective_batch_size"] = model_config["train_batch_size"] * trainer_config["accumulate_grad_batches"] * get_world_size()
-    wandb.summary["num_parameters"] = num_parameters
+        wandb.summary["effective_batch_size"] = model_config["train_batch_size"] * trainer_config["accumulate_grad_batches"] * get_world_size()
+        wandb.summary["num_parameters"] = num_parameters
+    else:
+        run = wandb.init(
+            name="imagenet",
+            entity="kl_divergence-rensselaer-polytechnic-institute",
+            project="oxels",
+            config=model_config | trainer_config,
+            dir="wandb_results",
+            id="imagenet",
+            resume="allow",
+            settings=wandb.Settings(init_timeout=600),
+            mode="disabled",
+        )
+
+        logger = WandbLogger(experiment=run, offline=True)
 
     trainer = L.Trainer(**trainer_config, callbacks=callbacks, logger=logger)
 
