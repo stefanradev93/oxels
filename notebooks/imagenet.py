@@ -102,17 +102,6 @@ def train(model_config, trainer_config):
         show_oxels = ShowOxels(validation_images)
         callbacks.append(show_oxels)
 
-        run = wandb.init(
-            name="imagenet",
-            entity="kl_divergence-rensselaer-polytechnic-institute",
-            project="oxels",
-            config=model_config | trainer_config,
-            dir="wandb_results",
-            id="imagenet",
-            resume="allow",
-            settings=wandb.Settings(init_timeout=600),
-        )
-
         logger = WandbLogger(
             name="imagenet",
             project="oxels",
@@ -120,6 +109,7 @@ def train(model_config, trainer_config):
             id="imagenet",
             entity="kl_divergence-rensselaer-polytechnic-institute",
             config=model_config | trainer_config,
+            settings=wandb.Settings(init_timeout=1800),
         )
 
         logger.experiment.summary["num_parameters"] = num_parameters
@@ -132,6 +122,7 @@ def train(model_config, trainer_config):
             id="imagenet",
             entity="kl_divergence-rensselaer-polytechnic-institute",
             config=model_config | trainer_config,
+            settings=wandb.Settings(init_timeout=1800),
         )
 
     trainer = L.Trainer(**trainer_config, callbacks=callbacks, logger=logger)
