@@ -113,24 +113,26 @@ def train(model_config, trainer_config):
             settings=wandb.Settings(init_timeout=600),
         )
 
-        logger = WandbLogger(experiment=run)
-
-        wandb.summary["effective_batch_size"] = model_config["train_batch_size"] * trainer_config["accumulate_grad_batches"] * get_world_size()
-        wandb.summary["num_parameters"] = num_parameters
-    else:
-        run = wandb.init(
+        logger = WandbLogger(
             name="imagenet",
-            entity="kl_divergence-rensselaer-polytechnic-institute",
             project="oxels",
-            config=model_config | trainer_config,
-            dir="wandb_results",
+            save_dir="logs",
             id="imagenet",
-            resume="allow",
-            settings=wandb.Settings(init_timeout=600),
-            mode="disabled",
+            entity="kl_divergence-rensselaer-polytechnic-institute",
+            config=model_config | trainer_config,
         )
 
-        logger = WandbLogger(experiment=run, offline=True)
+        logger.experiment.summary["num_parameters"] = num_parameters
+        logger.experiment.summary["effective_batch_size"] = model_config["train_batch_size"] * trainer_config["accumulate_grad_batches"] * get_world_size()
+    else:
+        logger = WandbLogger(
+            name="imagenet",
+            project="oxels",
+            save_dir="logs",
+            id="imagenet",
+            entity="kl_divergence-rensselaer-polytechnic-institute",
+            config=model_config | trainer_config,
+        )
 
     trainer = L.Trainer(**trainer_config, callbacks=callbacks, logger=logger)
 
