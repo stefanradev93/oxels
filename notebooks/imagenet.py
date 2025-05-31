@@ -90,7 +90,11 @@ def train(model_config, trainer_config):
         ModelCheckpoint(dirpath=str(ckpt_path.parent), filename=ckpt_path.stem, monitor="validation/loss", save_top_k=5, save_last=True, save_on_train_epoch_end=True, mode="min"),
     ]
 
-    if not ckpt_path.is_file():
+    last_ckpt_path = ckpt_path.with_stem("last")
+    if last_ckpt_path.is_file():
+        print(f"Loading last checkpoint from {last_ckpt_path}")
+        ckpt_path = last_ckpt_path
+    elif not ckpt_path.is_file():
         print(f"Checkpoint {ckpt_path} not found, starting from scratch.")
         ckpt_path = None
 
