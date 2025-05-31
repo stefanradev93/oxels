@@ -109,11 +109,12 @@ def train(model_config, trainer_config):
             id="imagenet",
             entity="kl_divergence-rensselaer-polytechnic-institute",
             config=model_config | trainer_config,
-            settings=wandb.Settings(init_timeout=1800),
+            settings=wandb.Settings(init_timeout=600),
+            mode="offline",
         )
 
-        logger.experiment.summary["num_parameters"] = num_parameters
-        logger.experiment.summary["effective_batch_size"] = model_config["train_batch_size"] * trainer_config["accumulate_grad_batches"] * get_world_size()
+        # logger.experiment.summary["num_parameters"] = num_parameters
+        # logger.experiment.summary["effective_batch_size"] = model_config["train_batch_size"] * trainer_config["accumulate_grad_batches"] * get_world_size()
     else:
         logger = WandbLogger(
             name="imagenet",
@@ -122,15 +123,13 @@ def train(model_config, trainer_config):
             id="imagenet",
             entity="kl_divergence-rensselaer-polytechnic-institute",
             config=model_config | trainer_config,
-            settings=wandb.Settings(init_timeout=1800),
+            settings=wandb.Settings(init_timeout=600),
+            mode="disabled",
         )
 
     trainer = L.Trainer(**trainer_config, callbacks=callbacks, logger=logger)
 
-    try:
-        trainer.fit(model, ckpt_path=ckpt_path)
-    finally:
-        run.finish()
+    trainer.fit(model, ckpt_path=ckpt_path)
 
 
 
