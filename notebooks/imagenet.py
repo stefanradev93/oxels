@@ -87,7 +87,7 @@ def train(model_config, trainer_config):
     ckpt_path = Path(dirpath) / filename
     callbacks = [
         LearningRateMonitor(),
-        ModelCheckpoint(dirpath=dirpath, filename=filename, monitor="validation/loss", save_top_k=5, save_last=True, save_on_train_epoch_end=True, mode="min"),
+        ModelCheckpoint(dirpath=str(ckpt_path.parent), filename=ckpt_path.stem, monitor="validation/loss", save_top_k=5, save_last=True, save_on_train_epoch_end=True, mode="min"),
     ]
 
     if not ckpt_path.is_file():
