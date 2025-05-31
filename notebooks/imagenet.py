@@ -109,7 +109,7 @@ def train(model_config, trainer_config):
             id="imagenet",
             entity="kl_divergence-rensselaer-polytechnic-institute",
             config=model_config | trainer_config,
-            settings=wandb.Settings(init_timeout=600),
+            settings=wandb.Settings(init_timeout=1800),
             mode="offline",
         )
 
@@ -123,7 +123,7 @@ def train(model_config, trainer_config):
             id="imagenet",
             entity="kl_divergence-rensselaer-polytechnic-institute",
             config=model_config | trainer_config,
-            settings=wandb.Settings(init_timeout=600),
+            settings=wandb.Settings(init_timeout=1800),
             mode="disabled",
         )
 
