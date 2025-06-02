@@ -20,7 +20,7 @@ def setup():
 def get_configs():
     max_epochs = None
     max_steps = 300_000
-    max_time = "00:05:30:00"
+    # max_time = "00:05:30:00"
     warmup_steps = 2_000
     train_batch_size = 16
     val_batch_size = 32
@@ -62,7 +62,7 @@ def get_configs():
     trainer_config = dict(
         max_epochs=max_epochs,
         max_steps=max_steps,
-        max_time=max_time,
+        # max_time=max_time,
         accelerator="gpu",
         num_nodes=count_nodes(),
         devices=-1,
