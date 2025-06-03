@@ -1,7 +1,9 @@
 import torch
 
+from .contrastive_loss import contrastive_loss
 
-def original_loss(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tensor:
+
+def original_loss(oview1, oview2, indices, flags, mask1, mask2, constrastive_weight=None) -> torch.Tensor:
     """
     Computes a custom contrastive-style loss between two spatially transformed views
     of an image representation (oxel space), using a soft matching scheme and visibility masks.
@@ -47,4 +49,7 @@ def original_loss(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tensor:
         loss = 0.25 * (1.0 - flags[b].mean()) + (max_diff * (2 * flags[b] - 1) + max_diff**2)
         losses.append((loss * _mask).mean() / _mask.mean())
 
-    return torch.mean(torch.stack(losses))
+    loss = torch.mean(torch.stack(losses))
+    if constrastive_weight is None:
+        return loss
+    return loss + constrastive_weight * contrastive_loss(oview1, oview2, indices, mask1, mask2)

@@ -3,8 +3,8 @@ import torch
 
 def contrastive_loss(oview1, oview2, indices, mask1, mask2) -> torch.Tensor:
     """
-    Computes a custom contrastive-style loss between two spatially transformed views
-    of an image representation (oxel space), using a soft matching scheme and visibility masks.
+    Can be used to augment our original loss with a contrastive component over “negative examples”
+    tha compares the dense features of different view pairs b and b′ within a batch.
 
     Parameters
     ----------
