@@ -14,15 +14,20 @@ from .download import DomainBedDownloadMixin
 class DomainBedDataset(DomainBedDownloadMixin, DomainGeneralizationDataset):
     name: str = NotImplemented
 
-    def __init__(self, root: str | Path, download: bool = True):
+    def __init__(self, root: str | Path, download: bool = True, transform=None):
         super().__init__(root, download=download)
 
-        transform = transforms.Compose(
-            [
-                transforms.Resize([224, 224]),
-                transforms.ToTensor(),
-            ]
-        )
+        if transform is None:
+            transform = transforms.Compose(
+                [
+                    transforms.Resize([224, 224]),
+                    transforms.ToTensor(),
+                ]
+            )
+        else:
+            transform = transforms.Compose(
+                list(transform.transforms) + [transforms.ToTensor()]
+            )
 
         # transform = transforms.Compose([
         #     transforms.RandomResizedCrop([224, 224], scale=(0.7, 1.0), antialias=True),

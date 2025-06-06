@@ -80,7 +80,7 @@ class DGPerspectiveDataset(Dataset):
             case "pacs":
                 from .dg import PACS
 
-                return PACS(self.path, download=True)
+                return PACS(self.path, download=True, transform=self.augmentations)
             case "rotatedmnist":
                 from .dg import RotatedMNIST
 
