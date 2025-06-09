@@ -187,3 +187,6 @@ cython_debug/
 datasets/
 logs/
 lightning_logs/
+
+scenenn_dec24_data/
+ShapeNetCore/
