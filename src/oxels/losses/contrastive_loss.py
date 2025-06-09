@@ -4,7 +4,7 @@ import torch
 def contrastive_loss(oview1, oview2, indices, mask1, mask2) -> torch.Tensor:
     """
     Can be used to augment our original loss with a contrastive component over “negative examples”
-    tha compares the dense features of different view pairs b and b′ within a batch.
+    that compares the dense features of different view pairs b and b′ within a batch.
 
     Parameters
     ----------
@@ -39,7 +39,7 @@ def contrastive_loss(oview1, oview2, indices, mask1, mask2) -> torch.Tensor:
         _oview2 = oview2[b2].reshape((C, H * W))[:, idx2]
 
         for b1 in range(b2):
-            _mask = mask1[b1]*_mask2
+            _mask = mask1[b1] * _mask2
 
             diff = oview1[b1].reshape((C, H * W)) - _oview2
             # max difference across channels

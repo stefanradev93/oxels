@@ -22,7 +22,7 @@ class SimpleDownSample(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.op(x)
-        #x = pad_to_even_height_and_width(x) # Can be added again if upsampling also has information about odd sizes
+        # x = pad_to_even_height_and_width(x) # Can be added again if upsampling also has information about odd sizes
         return x
 
 

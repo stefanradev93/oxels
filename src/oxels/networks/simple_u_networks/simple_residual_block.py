@@ -56,7 +56,7 @@ class SimpleResidualBlock(nn.Module):
         self.conv_out = nn.Conv2d(
             in_channels=out_channels, out_channels=out_channels, kernel_size=3, padding=1, bias=True
         )
-        #nn.init.orthogonal_(self.conv_out.weight)
+        # nn.init.orthogonal_(self.conv_out.weight)
         nn.init.normal_(self.conv_out.weight, mean=0.0, std=1e-6)
         nn.init.normal_(self.conv_out.bias, mean=0.0, std=1e-6)
 

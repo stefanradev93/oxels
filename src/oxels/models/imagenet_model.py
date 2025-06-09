@@ -29,6 +29,7 @@ class ImageNetModel(BaseModel):
         train_batch_size: int,
         val_batch_size: int,
         image_size: int = 256,
+        contrastive_loss_weight: float = 0.5,
     ):
         num_stages = len(stage_channels)
         has_attention = [False] * num_stages
@@ -58,20 +59,19 @@ class ImageNetModel(BaseModel):
             lr_div_factor=lr_div_factor,
             lr_final_div_factor=lr_final_div_factor,
             lr_pct_start=lr_pct_start,
+            contrastive_loss_weight=contrastive_loss_weight,
         )
 
         self.save_hyperparameters()
 
     def train_dataloader(self):
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]
-            ),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.7, 1.0)),
-        ])
+        transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.7, 1.0)),
+            ]
+        )
 
         dataset = ImageNet(split="train", transform=transform)
 
@@ -85,15 +85,13 @@ class ImageNetModel(BaseModel):
         )
 
     def val_dataloader(self):
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]
-            ),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.7, 1.0)),
-        ])
+        transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.7, 1.0)),
+            ]
+        )
 
         dataset = ImageNet(split="val", transform=transform)
 

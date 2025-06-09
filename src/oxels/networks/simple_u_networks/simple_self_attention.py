@@ -66,8 +66,8 @@ class SimpleAttention(nn.Module):
 
         # 8) Output projection back to C, zero initialized
         self.out_proj = nn.Linear(channel_dim, channel_dim)
-        #nn.init.xavier_uniform_(self.out_proj.weight, gain=1.0)
-        nn.init.normal_(self.out_proj.weight, mean=0.0, std=1e-6) # this needs to be zero for uvit and residualuvit
+        # nn.init.xavier_uniform_(self.out_proj.weight, gain=1.0)
+        nn.init.normal_(self.out_proj.weight, mean=0.0, std=1e-6)  # this needs to be zero for uvit and residualuvit
         nn.init.normal_(self.out_proj.bias, mean=0.0, std=1e-6)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -78,7 +78,7 @@ class SimpleAttention(nn.Module):
         # 1) Flatten spatial dims and apply input norm
         x_norm = self.input_norm(x)
         x_flat = x_norm.reshape(B, C, HW)  # (B, C, HW)
-        #x_norm = self.input_norm(x_flat)  # (B, C, HW)
+        # x_norm = self.input_norm(x_flat)  # (B, C, HW)
         x_flat = x_flat.permute(0, 2, 1).contiguous()  # (B, HW, C)
 
         # 2) Project to Q, K, V

@@ -30,12 +30,12 @@ def get_configs():
     accumulate_grad_batches = max(1, accumulate_grad_batches)
     learning_rate = 1e-3
     lr_pct_start = warmup_steps / max_steps
-    weight_decay = 1e-4
+    weight_decay = 0.0
 
     num_oxels = 64
 
-    stage_channels = [64, 96, 128, 192, 256]
-    num_res_blocks = [2, 2, 4, 6, 6]
+    stage_channels = [64, 48, 48, 32, 32]
+    num_res_blocks = [1, 1, 2, 2, 4]
 
     dropout_stages = [-2, -1]
     dropout = 0.1
@@ -57,6 +57,7 @@ def get_configs():
         train_batch_size=train_batch_size,
         val_batch_size=val_batch_size,
         image_size=256,
+        contrastive_loss_weight=0.5,
     )
 
     trainer_config = dict(
@@ -87,7 +88,15 @@ def train(model_config, trainer_config):
     ckpt_path = Path(dirpath) / filename
     callbacks = [
         LearningRateMonitor(),
-        ModelCheckpoint(dirpath=str(ckpt_path.parent), filename=ckpt_path.stem, monitor="validation/loss", save_top_k=5, save_last=True, save_on_train_epoch_end=True, mode="min"),
+        ModelCheckpoint(
+            dirpath=str(ckpt_path.parent),
+            filename=ckpt_path.stem,
+            monitor="validation/loss",
+            save_top_k=5,
+            save_last=True,
+            save_on_train_epoch_end=True,
+            mode="min",
+        ),
     ]
 
     last_ckpt_path = ckpt_path.with_stem("last")
@@ -134,7 +143,6 @@ def train(model_config, trainer_config):
     trainer = L.Trainer(**trainer_config, callbacks=callbacks, logger=logger)
 
     trainer.fit(model, ckpt_path=ckpt_path)
-
 
 
 def main(args):

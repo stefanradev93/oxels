@@ -9,7 +9,9 @@ from oxels.typing import ActivationType
 
 
 class AttentionLayer(nn.Module):
-    def __init__(self, *, in_features: int, out_features: int, num_heads: int = 4, activation: ActivationType = nn.SiLU):
+    def __init__(
+        self, *, in_features: int, out_features: int, num_heads: int = 4, activation: ActivationType = nn.SiLU
+    ):
         super().__init__()
         hidden_features = num_heads * max(in_features, out_features)
 
@@ -18,7 +20,9 @@ class AttentionLayer(nn.Module):
         self.out_features = out_features
         self.num_heads = num_heads
 
-        self.residual_projector = nn.Conv2d(in_features, out_features, kernel_size=1, stride=1, padding="same", bias=False)
+        self.residual_projector = nn.Conv2d(
+            in_features, out_features, kernel_size=1, stride=1, padding="same", bias=False
+        )
         nn.init.orthogonal_(self.residual_projector.weight)
 
         self.input_projector = nn.Conv2d(in_features, hidden_features, kernel_size=1, stride=1, padding="same")

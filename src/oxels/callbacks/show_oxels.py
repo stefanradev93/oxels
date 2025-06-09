@@ -5,7 +5,9 @@ import wandb
 
 
 class ShowOxels(L.Callback):
-    def __init__(self, images: torch.Tensor, num_oxels=8, resolution=(64, 64), file_type="jpg", every_n_epochs=1, caption=None):
+    def __init__(
+        self, images: torch.Tensor, num_oxels=8, resolution=(64, 64), file_type="jpg", every_n_epochs=1, caption=None
+    ):
         super().__init__()
         self.images = torch.as_tensor(images)
         self.num_oxels = num_oxels

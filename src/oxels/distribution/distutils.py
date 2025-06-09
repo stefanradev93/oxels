@@ -1,4 +1,3 @@
-
 import torch.distributed as dist
 
 import os
@@ -36,6 +35,7 @@ def rank_zero(fn, verbose=False, error=False):
     """
     Decorator to run a function only on rank 0.
     """
+
     def wrapper(*args, **kwargs):
         rank = dist.get_rank()
         if rank != 0:
@@ -47,6 +47,7 @@ def rank_zero(fn, verbose=False, error=False):
         if verbose:
             print(f"Rank {rank} is running {fn.__name__}")
         return fn(*args, **kwargs)
+
     return wrapper
 
 
@@ -69,7 +70,9 @@ def send_object(obj: any, src: int = None, dst: int | Sequence[int] = None, grou
         dist.send_object_list(object_list, dst=rank)
 
 
-def send_or_recv(fn: Callable[[], T], src_dst: Mapping[int, int | Sequence[int]] = None, group: dist.ProcessGroup = None) -> T:
+def send_or_recv(
+    fn: Callable[[], T], src_dst: Mapping[int, int | Sequence[int]] = None, group: dist.ProcessGroup = None
+) -> T:
     rank = dist.get_rank(group)
     size = dist.get_world_size(group)
 
