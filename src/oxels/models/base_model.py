@@ -25,7 +25,7 @@ class BaseModel(MetricsMixin, L.LightningModule):
         super().__init__()
 
         if not 0.0 <= contrastive_loss_weight <= 1.0:
-            raise ValueError("contrastive_loss_weight must be in [0, 1]")
+            raise ValueError("contrastive_loss_weight must be in [0, 1] and is used to compute (1-w)*transforms_loss + w*contrastive_loss.")
 
         self.save_hyperparameters(
             learning_rate,
