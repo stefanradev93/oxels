@@ -19,7 +19,7 @@ import copy as _cpy
 parent_dir = os.path.abspath(os.path.join(__file__, "..", ".."))
 sys.path.append(parent_dir)
 
-from barn-shared/oxels/src.oxels.obj_3d import (
+from src.oxels.obj_3d import (
     render_faster,
     sample_random_on_mesh_fast_o3d,
     get_visible_matches_with_indices_o3d,
@@ -41,7 +41,7 @@ RATIO_OF_POINTS_TO_RENDER = 1/8
 NUM_CAMERAS = 2
 
 # — Number of image‐pairs to generate total —
-NUM_PAIRS = 2000  # ← change as desired
+NUM_PAIRS = 1000  # ← change as desired
 
 # =============================================================================
 #  -- CACHES TO SPEED UP REPEATED LOADS --
@@ -121,11 +121,6 @@ def load_scene_mesh_and_detect_floor(scenenn_dir: str, bad_scenes: set):
     # ceiling = near top of bounding box
     ceiling_height = float(max_bound[up_axis] - 0.1)
 
-    print(
-        f"[load_scene] Done: up_axis={up_axis}, plane_normal={plane_normal}, "
-        f"floor_height≈{floor_height:.3f}, ceiling_height≈{ceiling_height:.3f}"
-    )
-
     # Cache it all in a tuple for reuse
     _SCENE_CACHE[scene_id] = (
         scene_mesh,
@@ -182,7 +177,6 @@ def sample_interior_points(scene_mesh: o3d.geometry.TriangleMesh,
     clear_mask = distances > min_clearance
     candidates = sampled_points[clear_mask]
     distances = distances[clear_mask]
-    print(f"[sample_interior] After clearance: {candidates.shape[0]} / {num_samples} remain")
 
     # 3) horizontal ray‐cast check for interior‐ness
     axes = [0, 1, 2]
@@ -206,10 +200,7 @@ def sample_interior_points(scene_mesh: o3d.geometry.TriangleMesh,
     interior_mask = hit_count >= 3
     interior_points = candidates[interior_mask]
     interior_distances = distances[interior_mask]
-    print(f"[sample_interior] After ray‐cast interior check: {interior_points.shape[0]} remain")
 
-    t1 = time.time()
-    print(f"[sample_interior] Done (took {t1 - t0:.3f} s)")
     return interior_points, interior_distances
 
 
@@ -230,9 +221,7 @@ def place_objects(interior_points: np.ndarray,
     pts_sorted = interior_points[order]
     dists_sorted = interior_distances[order]
     cluster_center = pts_sorted[0]
-    print(f"[place_objects] Cluster center={cluster_center}, clearance={dists_sorted[0]:.3f}")
     num_objects = np.random.randint(1, max_objects + 1)
-    print(f"[place_objects] Attempting to place {num_objects} objects")
     object_positions = [cluster_center.copy()]
 
     remaining_points = pts_sorted[1:].copy()
@@ -254,9 +243,6 @@ def place_objects(interior_points: np.ndarray,
         remaining_points = np.delete(remaining_points, np.where(valid_mask)[0][idx_choice], axis=0)
         remaining_dist = np.delete(remaining_dist, np.where(valid_mask)[0][idx_choice], axis=0)
 
-    print(f"[place_objects] Placed {len(object_positions)} objects")
-    t1 = time.time()
-    print(f"[place_objects] Done (took {t1 - t0:.3f} s)")
     return np.vstack(object_positions), cluster_center
 
 
@@ -391,8 +377,6 @@ def compute_camera_poses(interior_points: np.ndarray,
         cam_height_min = max(0.0, cam_height_min * 0.8)
         cam_height_max *= 1.2
 
-    print(f"[compute_cameras] First camera pos={camera_position1}, target={first_target}")
-
     # --- FIND SECOND CAMERA ---
     # Restore original constraints
     cam_height_min       = base_params["cam_height_min"]
@@ -481,9 +465,6 @@ def compute_camera_poses(interior_points: np.ndarray,
         cam_height_min = max(0.0, cam_height_min * 0.8)
         cam_height_max *= 1.2
 
-    print(f"[compute_cameras] Second camera pos={camera_position2}, "
-          f"target={second_target}, angle_between ≈ {angle_deg:.1f}°")
-
     # --- BUILD 4×4 "look-at" POSES for both cameras ---
     pose1 = np.eye(4, dtype=float)
     pose1[:3, 0] = R_cam1[:, 0]
@@ -497,7 +478,6 @@ def compute_camera_poses(interior_points: np.ndarray,
     pose2[:3, 2] = -R_cam2[:, 2]
     pose2[:3, 3] = camera_position2
 
-    print(f"[compute_cameras] Done (took {time.time() - t0:.3f} s)")
     return {
         "pose1":      pose1,
         "pose2":      pose2,
@@ -592,7 +572,6 @@ def load_and_transform_objects(object_positions: np.ndarray):
                 base_mesh = _get_base_shapenet_mesh(model_path)
                 break
             except Exception as e:
-                print(f"[load_object] Error loading {model_path}: {e}")
                 continue
 
         if base_mesh is None:
@@ -619,8 +598,6 @@ def load_and_transform_objects(object_positions: np.ndarray):
 
         object_meshes.append(obj)
 
-    t1 = time.time()
-    print(f"[load_and_transform_objects] Loaded {len(object_meshes)} objects (took {t1 - t0:.3f} s)")
     return object_meshes
 
 
@@ -665,7 +642,6 @@ def visualize_scene(scene_mesh: o3d.geometry.TriangleMesh,
     opt.background_color = np.array([0.1, 0.1, 0.1])
     coord = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5)
     vis.add_geometry(coord)
-    print("[visualize_scene] Visualizing. Close window to continue.")
     vis.run()
     vis.destroy_window()
 
@@ -680,32 +656,49 @@ def sample_and_match(scene_mesh: o3d.geometry.TriangleMesh,
                      resolution: tuple,
                      f1: float,
                      f2: float,
+                     cluster_center,
+                     interior_points,
+                     up_axis,
+                     interior_dists,
                      num_points: int = 2048):
     """
-    (Unchanged.)
+    Sample points from the scene and find matches between two rendered views.
     """
-    t0 = time.time()
+    t_start = time.time()
     rp1 = pose1.copy()
     rp2 = pose2.copy()
     rp1[:3, 2] = -rp1[:3, 2]
     rp2[:3, 2] = -rp2[:3, 2]
 
-    start = time.time()
-    I1 = render_faster(scene_mesh, object_meshes, rp1, resolution, f1)
-    print(f"[sample_and_match] Render I1 time: {time.time() - start:.3f} s")
-    start = time.time()
-    I2 = render_faster(scene_mesh, object_meshes, rp2, resolution, f2)
-    print(f"[sample_and_match] Render I2 time: {time.time() - start:.3f} s")
+    # Render both views
+    I1 = render_faster(
+        scene_mesh,
+        object_meshes,
+        rp1,
+        resolution,
+        f1,
+        interior_points=interior_points,
+        interior_dists=interior_dists,
+    )
 
-    start = time.time()
+    I2 = render_faster(
+        scene_mesh,
+        object_meshes,
+        rp2,
+        resolution,
+        f2,
+        interior_points=interior_points,
+        interior_dists=interior_dists,
+    )
+
+    # Build raycasting scene
     combined = o3d.geometry.TriangleMesh()
     for m in [scene_mesh] + object_meshes:
         combined += m
     ray_scene = o3d.t.geometry.RaycastingScene()
     _ = ray_scene.add_triangles(o3d.t.geometry.TriangleMesh.from_legacy(combined))
-    print(f"[sample_and_match] Raycasting scene build time: {time.time() - start:.3f} s")
 
-    start = time.time()
+    # Sample points
     try:
         xyz_all, uv1_all = sample_random_on_mesh_fast_o3d(
             ray_scene=ray_scene,
@@ -721,9 +714,8 @@ def sample_and_match(scene_mesh: o3d.geometry.TriangleMesh,
         uv1_all = np.zeros((0, 2))
     if len(xyz_all) == 0:
         raise RuntimeError("No visible points sampled from combined mesh.")
-    print(f"[sample_and_match] Sampling points time: {time.time() - start:.3f} s")
 
-    start = time.time()
+    # Find matches
     match_mask, uv2_all, indices = get_visible_matches_with_indices_o3d(
         ray_scene=ray_scene,
         xyz=xyz_all,
@@ -731,10 +723,8 @@ def sample_and_match(scene_mesh: o3d.geometry.TriangleMesh,
         f=f2,
         resolution=resolution
     )
-    print(f"[sample_and_match] Matching points time: {time.time() - start:.3f} s")
 
-    t1 = time.time()
-    print(f"[sample_and_match] Total time: {t1 - t0:.3f} s")
+    t_end = time.time()
     return I1, I2, xyz_all, uv1_all, match_mask, uv2_all, indices
 
 
@@ -834,9 +824,16 @@ def export_dataset(images: list,
     # 1) Save each image + pose
     # --------------------------
     for i, (img, pose) in enumerate(zip(images, poses)):
-        # Convert float [0,1] → uint8 [0,255]
-        img_uint8 = (img * 255.0).astype(np.uint8)
-        # Save as PNG; images are RGB so convert to BGR for OpenCV
+    # 1) drop alpha if present
+        if img.ndim == 3 and img.shape[2] == 4:
+            img = img[:, :, :3]
+
+        # 2) only scale floats in [0,1]
+        if img.dtype == np.uint8:
+            img_uint8 = img
+        else:
+            img_uint8 = (np.clip(img, 0.0, 1.0) * 255.0).astype(np.uint8)
+
         img_path = os.path.join(scene_dir, f"view{i}.png")
         cv2.imwrite(img_path, cv2.cvtColor(img_uint8, cv2.COLOR_RGB2BGR))
 
@@ -912,6 +909,7 @@ def export_dataset(images: list,
 def main():
     pair_idx = 0
     while pair_idx < NUM_PAIRS:
+        t_start = time.time()
         print(f"\n==== Generating pair {pair_idx + 1}/{NUM_PAIRS} ====")
         try:
             # 1) Load a random scene + detect floor (cached if re‐used)
@@ -979,10 +977,14 @@ def main():
                 resolution=RESOLUTION,
                 f1=F1,
                 f2=F2,
+                interior_points=interior_pts,
+                cluster_center=cluster_center,
+                up_axis=up_axis,
+                interior_dists=interior_dists,
                 num_points=int(RESOLUTION[0]*RESOLUTION[1]*RATIO_OF_POINTS_TO_RENDER)
             )
 
-            # 8) Visualize matched points
+            #8) Visualize matched points
             # visualize_matches(
             #     I1=I1,
             #     I2=I2,
@@ -1015,7 +1017,7 @@ def main():
             )
 
             # Pause 1 second so the next timestamp folder differs
-            time.sleep(0.5)
+            print(f"[export_dataset] Exported (took {time.time() - t_start:.3f}s)")
 
             # If all operations succeed, increment the counter to proceed to the next pair
             pair_idx += 1
