@@ -11,7 +11,7 @@ class ColoredMNIST(MNISTDataset):
     domain_map = {"L": 0, "M": 1, "H": 2}
     n_classes = 2
 
-    def __init__(self, root: str | Path, download: bool = True, transform=None):
+    def __init__(self, root: str | Path, download: bool = True, transform=None, domain_transforms=None):
         make_color_ch = transforms.Compose(
             [
                 transforms.ToTensor(),
@@ -23,16 +23,17 @@ class ColoredMNIST(MNISTDataset):
         else:
             transform = transforms.Compose(make_color_ch.transforms + transform.transforms)
 
-        domain_transforms = [
-            dtransforms.Compose(
-                [dtransforms.BinarizeLabel(5), dtransforms.FlipLabel(0.25), dtransforms.ZeroChannel(0.1)]
-            ),
-            dtransforms.Compose(
-                [dtransforms.BinarizeLabel(5), dtransforms.FlipLabel(0.25), dtransforms.ZeroChannel(0.2)]
-            ),
-            dtransforms.Compose(
-                [dtransforms.BinarizeLabel(5), dtransforms.FlipLabel(0.25), dtransforms.ZeroChannel(0.9)]
-            ),
-        ]
+        if domain_transforms is None:
+            domain_transforms = [
+                dtransforms.Compose(
+                    [dtransforms.BinarizeLabel(5), dtransforms.FlipLabel(0.25), dtransforms.ZeroChannel(0.1)]
+                ),
+                dtransforms.Compose(
+                    [dtransforms.BinarizeLabel(5), dtransforms.FlipLabel(0.25), dtransforms.ZeroChannel(0.2)]
+                ),
+                dtransforms.Compose(
+                    [dtransforms.BinarizeLabel(5), dtransforms.FlipLabel(0.25), dtransforms.ZeroChannel(0.9)]
+                ),
+            ]
 
         super().__init__(root, download=download, transform=transform, domain_transforms=domain_transforms)
