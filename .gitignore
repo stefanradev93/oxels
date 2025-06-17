@@ -184,13 +184,13 @@ cython_debug/
 .pypirc
 
 # datasets
-datasets/
-logs/
-lightning_logs/
+/datasets/
+/logs/
+/lightning_logs/
 
 # 3D Datasets
-scenenn_dec24_data/
-ShapeNetCore/
-contrastive_3d/
-SceneNN_Split/
-ShapeNet_Split/
+/scenenn_dec24_data/
+/ShapeNetCore/
+/contrastive_3d/
+/SceneNN_Split/
+/ShapeNet_Split/
