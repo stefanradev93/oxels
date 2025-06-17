@@ -14,22 +14,25 @@ import cv2
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 import copy as _cpy
+from collections import OrderedDict
+from typing import Tuple
+
 
 # If you have oxels in a parent directory, adjust as needed
 parent_dir = os.path.abspath(os.path.join(__file__, "..", ".."))
 sys.path.append(parent_dir)
 
-from src.oxels.obj_3d import (
+from oxels.obj_3d import (
     render_faster,
     sample_random_on_mesh_fast_o3d,
     get_visible_matches_with_indices_o3d,
 )
 
 # === GLOBAL CONFIG ===
-SHAPENET_DIR = "./ShapeNet/train"
+SHAPENET_DIR = "./ShapeNet_Split/train"
 BLACKLIST = {"04090263"}
 
-SCENENN_DIR = "./SceneNN/train"
+SCENENN_DIR = "./SceneNN_Split/train"
 BAD_SCENES = {}
 
 OUTPUT_DIR = f"contrastive_3d/train/{str(uuid.uuid4())}"
@@ -47,10 +50,12 @@ NUM_PAIRS = 1000  # ← change as desired
 #  -- CACHES TO SPEED UP REPEATED LOADS --
 # =============================================================================
 # Cache for any SceneNN scene we load (keyed by scene_id)
-_SCENE_CACHE = {}
+MAX_SCENE_CACHE = 100
+_SCENE_CACHE: OrderedDict[str, Tuple] = OrderedDict()
 
 # Cache for each raw ShapeNet .obj we load (keyed by absolute model_path).
-_SHAPENET_MESH_CACHE = {}
+_MAX_SHAPENET_MESH_CACHE = 200
+_SHAPENET_MESH_CACHE: OrderedDict[str, o3d.geometry.TriangleMesh] = OrderedDict()
 
 
 # =============================================================================
@@ -122,6 +127,8 @@ def load_scene_mesh_and_detect_floor(scenenn_dir: str, bad_scenes: set):
     ceiling_height = float(max_bound[up_axis] - 0.1)
 
     # Cache it all in a tuple for reuse
+    if len(_SCENE_CACHE) >= MAX_SCENE_CACHE:
+        _SCENE_CACHE.popitem(last=False)
     _SCENE_CACHE[scene_id] = (
         scene_mesh,
         up_axis,
@@ -495,16 +502,21 @@ def compute_camera_poses(interior_points: np.ndarray,
 # =============================================================================
 def _get_base_shapenet_mesh(model_path: str) -> o3d.geometry.TriangleMesh:
     """
-    Load a raw ShapeNet .obj once and cache it.  
-    On subsequent calls, return a .copy() (or deepcopy) so we don't modify the cached original.
+    Load a raw ShapeNet .obj once and cache it (up to 1000 entries).
+    On cache hit: return a fresh copy of the cached mesh.
+    On miss: load, cache (evicting oldest if needed), and return the new mesh.
     """
+    # ——— Cache hit: move to end (MRU) and return a copy ———
     if model_path in _SHAPENET_MESH_CACHE:
-        # Return a fresh copy of the cached mesh
+        # pop then re-insert to mark as most-recently used
+        original = _SHAPENET_MESH_CACHE.pop(model_path)
+        _SHAPENET_MESH_CACHE[model_path] = original
         try:
-            return _SHAPENET_MESH_CACHE[model_path].copy()
+            return original.copy()
         except AttributeError:
-            return _cpy.deepcopy(_SHAPENET_MESH_CACHE[model_path])
+            return _cpy.deepcopy(original)
 
+    # ——— Cache miss: load from disk ———
     tm = trimesh.load(model_path, process=False)
     if isinstance(tm, trimesh.Scene):
         geoms = [g for g in tm.geometry.values() if isinstance(g, trimesh.Trimesh)]
@@ -512,6 +524,7 @@ def _get_base_shapenet_mesh(model_path: str) -> o3d.geometry.TriangleMesh:
             raise ValueError("Scene has no Trimesh parts")
         tm = trimesh.util.concatenate(geoms)
 
+    # extract or synthesize vertex colors
     vis = tm.visual
     if hasattr(vis, "vertex_colors") and len(vis.vertex_colors):
         vc = vis.vertex_colors
@@ -521,13 +534,18 @@ def _get_base_shapenet_mesh(model_path: str) -> o3d.geometry.TriangleMesh:
         vc = np.tile([200, 200, 200, 255], (len(tm.vertices), 1))
     vc = (vc[:, :3] / 255.0).astype(np.float64)
 
+    # build Open3D mesh
     mesh = o3d.geometry.TriangleMesh()
     mesh.vertices = o3d.utility.Vector3dVector(tm.vertices)
     mesh.triangles = o3d.utility.Vector3iVector(tm.faces)
     mesh.vertex_colors = o3d.utility.Vector3dVector(vc)
     mesh.compute_vertex_normals()
 
-    # Cache it (store a copy so the "mesh" we return stays independent)
+    # ——— Evict oldest if we're at capacity ———
+    if len(_SHAPENET_MESH_CACHE) >= _MAX_SHAPENET_MESH_CACHE:
+        _SHAPENET_MESH_CACHE.popitem(last=False)
+
+    # ——— Cache a copy and return the original ———
     try:
         _SHAPENET_MESH_CACHE[model_path] = mesh.copy()
     except AttributeError:
