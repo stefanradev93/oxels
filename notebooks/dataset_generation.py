@@ -29,10 +29,10 @@ from oxels.obj_3d import (
 )
 
 # === GLOBAL CONFIG ===
-SHAPENET_DIR = "./ShapeNet_Split/train"
+SHAPENET_DIR = "./ShapeNet/train"
 BLACKLIST = {"04090263"}
 
-SCENENN_DIR = "./SceneNN_Split/train"
+SCENENN_DIR = "./SceneNN/train"
 BAD_SCENES = {}
 
 OUTPUT_DIR = f"contrastive_3d/train/{str(uuid.uuid4())}"
