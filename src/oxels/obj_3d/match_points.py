@@ -120,12 +120,12 @@ def sample_random_on_mesh_fast_o3d(
         final_uv = final_uv[idx]
 
     # === Timing Output ===
-    print("Visibility-aware sampling (Open3D):")
-    print(f"- Surface sampling        : {t1 - t0:.4f}s")
-    print(f"- Transform & filtering   : {t2 - t1:.4f}s")
-    print(f"- Projection              : {t3 - t2:.4f}s")
-    print(f"- Raycasting visibility   : {t4 - t3:.4f}s")
-    print(f"==> Total                 : {t4 - t0:.4f}s")
+    # print("Visibility-aware sampling (Open3D):")
+    # print(f"- Surface sampling        : {t1 - t0:.4f}s")
+    # print(f"- Transform & filtering   : {t2 - t1:.4f}s")
+    # print(f"- Projection              : {t3 - t2:.4f}s")
+    # print(f"- Raycasting visibility   : {t4 - t3:.4f}s")
+    # print(f"==> Total                 : {t4 - t0:.4f}s")
 
     return final_visible_points, final_uv.astype(int)
 
@@ -247,10 +247,10 @@ def get_visible_matches_with_indices_o3d(
     t3 = time.perf_counter()
 
     # === Debug profiling ===
-    print("Timing breakdown (Open3D):")
-    print(f"- Direction + projection : {t1 - t0:.4f}s")
-    print(f"- Ray intersection        : {t2 - t1:.4f}s")
-    print(f"- Occlusion filtering     : {t3 - t2:.4f}s")
-    print(f"==> Total                 : {t3 - t0:.4f}s")
+    # print("Timing breakdown (Open3D):")
+    # print(f"- Direction + projection : {t1 - t0:.4f}s")
+    # print(f"- Ray intersection        : {t2 - t1:.4f}s")
+    # print(f"- Occlusion filtering     : {t3 - t2:.4f}s")
+    # print(f"==> Total                 : {t3 - t0:.4f}s")
 
     return final_mask, pixel_coords, visible_xyz_indices
