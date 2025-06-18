@@ -20,7 +20,7 @@ def setup():
 def get_configs():
     max_epochs = None
     max_steps = 62_500
-    warmup_steps = 2_000
+    warmup_steps = 1_250
     train_batch_size = 16
     val_batch_size = 32
 
@@ -29,12 +29,12 @@ def get_configs():
     accumulate_grad_batches = max(1, accumulate_grad_batches)
     learning_rate = 1e-3
     lr_pct_start = warmup_steps / max_steps
-    weight_decay = 0.0
+    weight_decay = 1e-4
 
-    num_oxels = 32
+    num_oxels = 64
 
-    stage_channels = [32, 48, 64, 96, 128]
-    num_res_blocks = [1, 2, 4, 6, 4]
+    stage_channels = [64, 96, 128, 192, 256]
+    num_res_blocks = [2, 2, 4, 6, 6]
 
     dropout_stages = [-2, -1]
     dropout = 0.1
