@@ -29,7 +29,8 @@ class ImageNetModel(BaseModel):
         train_batch_size: int,
         val_batch_size: int,
         image_size: int = 256,
-        contrastive_loss_weight: float = 0.5,
+        frac_keep: float = 0.25,
+        contrastive_loss_weight: float = 0.75,
     ):
         num_stages = len(stage_channels)
         has_attention = [False] * num_stages
@@ -73,7 +74,7 @@ class ImageNetModel(BaseModel):
             ]
         )
 
-        dataset = ImageNet(split="train", transform=transform)
+        dataset = ImageNet(split="train", transform=transform, frac_keep=self.hparams.frac_keep)
 
         return DataLoader(
             dataset,
@@ -93,7 +94,7 @@ class ImageNetModel(BaseModel):
             ]
         )
 
-        dataset = ImageNet(split="val", transform=transform)
+        dataset = ImageNet(split="val", transform=transform, frac_keep=self.hparams.frac_keep)
 
         return DataLoader(
             dataset,

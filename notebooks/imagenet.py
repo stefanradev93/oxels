@@ -1,5 +1,5 @@
 import lightning as L
-from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint, Timer
 from lightning.pytorch.loggers import WandbLogger
 
 import torch
@@ -19,8 +19,7 @@ def setup():
 
 def get_configs():
     max_epochs = None
-    max_steps = 300_000
-    # max_time = "00:05:30:00"
+    max_steps = 62_500
     warmup_steps = 2_000
     train_batch_size = 16
     val_batch_size = 32
@@ -32,10 +31,10 @@ def get_configs():
     lr_pct_start = warmup_steps / max_steps
     weight_decay = 0.0
 
-    num_oxels = 64
+    num_oxels = 32
 
-    stage_channels = [64, 48, 48, 32, 32]
-    num_res_blocks = [1, 1, 2, 2, 4]
+    stage_channels = [32, 48, 64, 96, 128]
+    num_res_blocks = [1, 2, 4, 6, 4]
 
     dropout_stages = [-2, -1]
     dropout = 0.1
@@ -57,13 +56,13 @@ def get_configs():
         train_batch_size=train_batch_size,
         val_batch_size=val_batch_size,
         image_size=256,
-        contrastive_loss_weight=0.5,
+        frac_keep=0.25,
+        contrastive_loss_weight=0.75,
     )
 
     trainer_config = dict(
         max_epochs=max_epochs,
         max_steps=max_steps,
-        # max_time=max_time,
         accelerator="gpu",
         num_nodes=count_nodes(),
         devices=-1,
@@ -116,28 +115,30 @@ def train(model_config, trainer_config):
         callbacks.append(show_oxels)
 
         logger = WandbLogger(
-            name="imagenet",
+            name="imagenet-contrastive",
             project="oxels",
             save_dir="logs",
-            id="imagenet",
+            id="imagenet-contrastive",
             entity="kl_divergence-rensselaer-polytechnic-institute",
             config=model_config | trainer_config,
             settings=wandb.Settings(init_timeout=1800),
-            mode="offline",
+            mode="online",
+            resume="allow",
         )
 
         # logger.experiment.summary["num_parameters"] = num_parameters
         # logger.experiment.summary["effective_batch_size"] = model_config["train_batch_size"] * trainer_config["accumulate_grad_batches"] * get_world_size()
     else:
         logger = WandbLogger(
-            name="imagenet",
+            name="imagenet-contrastive",
             project="oxels",
             save_dir="logs",
-            id="imagenet",
+            id="imagenet-contrastive",
             entity="kl_divergence-rensselaer-polytechnic-institute",
             config=model_config | trainer_config,
             settings=wandb.Settings(init_timeout=1800),
             mode="disabled",
+            resume="allow",
         )
 
     trainer = L.Trainer(**trainer_config, callbacks=callbacks, logger=logger)
