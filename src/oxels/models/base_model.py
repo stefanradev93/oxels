@@ -58,6 +58,14 @@ class BaseModel(MetricsMixin, L.LightningModule):
 
         return loss
 
+    @jit
+    def compute_loss_test(self, batch):
+        return self.compute_loss(batch)
+
+    @jit
+    def compute_loss_validation(self, batch):
+        return self.compute_loss(batch)
+
     def configure_optimizers(self):
         lr = self.hparams.learning_rate
         wd = self.hparams.weight_decay
