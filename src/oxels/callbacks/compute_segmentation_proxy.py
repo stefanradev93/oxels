@@ -90,7 +90,7 @@ class ComputeOxelSegmentationStat(L.Callback):
         plt.tight_layout()
 
         wandb.log({
-            self.caption: fig,
+            self.caption: wandb.Image(fig),
             "trainer/global_step": trainer.global_step
         })
         plt.close(fig)
