@@ -192,5 +192,8 @@ cython_debug/
 /scenenn_dec24_data/
 /ShapeNetCore/
 /contrastive_3d/
+/contrastive_3d_final/
 /SceneNN_Split/
 /ShapeNet_Split/
+/Downstream_Image_Matching/
+BASH.sh

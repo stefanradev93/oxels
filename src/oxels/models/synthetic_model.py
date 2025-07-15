@@ -2,7 +2,6 @@ from collections.abc import Sequence
 import os
 
 from torch.utils.data import DataLoader
-from torchvision import transforms
 
 from oxels.datasets import Contrastive3D
 from oxels.networks import SimpleUNet
@@ -14,6 +13,7 @@ class Contrastive_Model(BaseModel):
     def __init__(
         self,
         *,
+        data_root: str,
         stage_channels: Sequence[int] = (32, 64, 128, 256),
         num_res_blocks: Sequence[int] = (2, 2, 2, 4),
         num_oxels: int = 64,
@@ -28,7 +28,6 @@ class Contrastive_Model(BaseModel):
         lr_pct_start: float = 0.05,
         train_batch_size: int,
         val_batch_size: int,
-        image_size: int = 256,
         contrastive_loss_weight: float = 0.5,
     ):
         num_stages = len(stage_channels)
@@ -41,8 +40,8 @@ class Contrastive_Model(BaseModel):
             residual_dropout[stage] = dropout
 
         backbone = SimpleUNet(
-            height=image_size,
-            width=image_size,
+            height=256,  # Fixed size
+            width=256,   # Fixed size
             in_channels=3,
             out_channels=num_oxels,
             channels_of_stage=stage_channels,
@@ -63,44 +62,28 @@ class Contrastive_Model(BaseModel):
         )
 
         self.save_hyperparameters()
+        self.data_root = data_root
 
     def train_dataloader(self):
-        transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.7, 1.0)),
-            ]
-        )
-
-        dataset = Contrastive3D(split="train")
-
+        dataset = Contrastive3D(root=self.data_root, split="train")
 
         return DataLoader(
             dataset,
-            batch_size=self.hparams.train_batch_size,
+            batch_size=self.hparams["train_batch_size"],
             shuffle=True,
-            pin_memory=False,
+            pin_memory=True,
             num_workers=len(os.sched_getaffinity(0)),
             drop_last=True,
         )
 
     def val_dataloader(self):
-        transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.7, 1.0)),
-            ]
-        )
-
-        dataset = Contrastive3D(split="val")
+        dataset = Contrastive3D(root=self.data_root, split="val")
 
         return DataLoader(
             dataset,
-            batch_size=self.hparams.val_batch_size,
+            batch_size=self.hparams["val_batch_size"],
             shuffle=False,
-            pin_memory=False,
+            pin_memory=True,
             num_workers=len(os.sched_getaffinity(0)),
             drop_last=False,
         )

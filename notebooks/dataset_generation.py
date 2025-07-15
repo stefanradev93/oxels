@@ -6,6 +6,7 @@ import json
 import random
 from datetime import datetime
 import uuid
+import gc
 
 import numpy as np
 import trimesh
@@ -16,6 +17,7 @@ from scipy.spatial.transform import Rotation
 import copy as _cpy
 from collections import OrderedDict
 from typing import Tuple
+from tqdm import tqdm
 
 
 # If you have oxels in a parent directory, adjust as needed
@@ -28,15 +30,19 @@ from oxels.obj_3d import (
     get_visible_matches_with_indices_o3d,
 )
 
+split = "train"
+
 # === GLOBAL CONFIG ===
-SHAPENET_DIR = "./ShapeNet/train"
+SHAPENET_DIR = f"./ShapeNet_Split/{split}"
 BLACKLIST = {"04090263"}
 
-SCENENN_DIR = "./SceneNN/train"
+
+SCENENN_DIR = f"./SceneNN_Split/{split}"
 BAD_SCENES = {}
 
-OUTPUT_DIR = f"contrastive_3d/train/{str(uuid.uuid4())}"
-RESOLUTION = (640, 480)
+OUTPUT_DIR = f"./contrastive_3d_final/{split}/{str(uuid.uuid4())}"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+RESOLUTION = (256, 256)
 F1 = 500
 F2 = 500
 
@@ -44,17 +50,17 @@ RATIO_OF_POINTS_TO_RENDER = 1/8
 NUM_CAMERAS = 2
 
 # — Number of image‐pairs to generate total —
-NUM_PAIRS = 1000  # ← change as desired
+NUM_PAIRS = 10000  # ← change as desired
 
 # =============================================================================
 #  -- CACHES TO SPEED UP REPEATED LOADS --
 # =============================================================================
 # Cache for any SceneNN scene we load (keyed by scene_id)
-MAX_SCENE_CACHE = 100
+MAX_SCENE_CACHE = 1
 _SCENE_CACHE: OrderedDict[str, Tuple] = OrderedDict()
 
 # Cache for each raw ShapeNet .obj we load (keyed by absolute model_path).
-_MAX_SHAPENET_MESH_CACHE = 200
+_MAX_SHAPENET_MESH_CACHE = 2
 _SHAPENET_MESH_CACHE: OrderedDict[str, o3d.geometry.TriangleMesh] = OrderedDict()
 
 
@@ -217,7 +223,7 @@ def sample_interior_points(scene_mesh: o3d.geometry.TriangleMesh,
 def place_objects(interior_points: np.ndarray,
                   interior_distances: np.ndarray,
                   min_object_distance: float = 0.35,
-                  max_objects: int = 20):
+                  max_objects: int = 35):
     """
     (Exactly as before.)
     """
@@ -253,6 +259,12 @@ def place_objects(interior_points: np.ndarray,
     return np.vstack(object_positions), cluster_center
 
 
+def roll_matrix(theta):
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array([[c, -s, 0],
+                     [s,  c, 0],
+                     [0,  0, 1]])
+
 def compute_camera_poses(interior_points: np.ndarray,
                          cluster_center: np.ndarray,
                          plane_normal: np.ndarray,
@@ -260,7 +272,7 @@ def compute_camera_poses(interior_points: np.ndarray,
                          ceiling_height: float,
                          up_axis: int,
                          scene_mesh: o3d.geometry.TriangleMesh,
-                         target_offset_range: float = 0.5,
+                         target_offset_range: float = 0.0,
                          cam_height_min: float = 0.1,
                          cam_height_max: float = 4.0,
                          min_cluster_dist: float = 0.5,
@@ -332,9 +344,12 @@ def compute_camera_poses(interior_points: np.ndarray,
         if candidates.shape[0] == 0:
             candidates = interior_points.copy()
 
-        first_target = cluster_center + np.random.uniform(
-            -target_offset_range, target_offset_range, size=3
-        )
+        first_target = cluster_center 
+        #+ np.random.uniform(
+        #    -target_offset_range, target_offset_range, size=3
+        #)
+        #
+        print(first_target)
         first_target[up_axis] = cluster_center[up_axis]
 
         # Try up to 100 random interior points
@@ -366,6 +381,10 @@ def compute_camera_poses(interior_points: np.ndarray,
                 cam_up = np.cross(right, forward)
                 cam_up /= np.linalg.norm(cam_up)
                 R_cam1 = np.stack([right, cam_up, forward], axis=1)
+
+                # Apply random roll
+                theta = np.random.uniform(0, 2 * np.pi)
+                R_cam1 = R_cam1 @ roll_matrix(theta)
                 camera_position1 = cand.copy()
                 break  # found first camera
 
@@ -406,7 +425,7 @@ def compute_camera_poses(interior_points: np.ndarray,
 
     while True:
         second_target = cluster_center + np.random.uniform(
-            -target_offset_range, target_offset_range, size=3
+           -target_offset_range, target_offset_range, size=3
         )
         second_target[up_axis] = cluster_center[up_axis]
 
@@ -451,6 +470,10 @@ def compute_camera_poses(interior_points: np.ndarray,
             cam_up = np.cross(right, forward)
             cam_up /= np.linalg.norm(cam_up)
             R_cam2 = np.stack([right, cam_up, forward], axis=1)
+
+            # Apply random roll
+            theta = np.random.uniform(0, 2 * np.pi)
+            R_cam2 = R_cam2 @ roll_matrix(theta)
             camera_position2 = cand.copy()
             break  # found second camera
 
@@ -565,9 +588,11 @@ def load_and_transform_objects(object_positions: np.ndarray):
     """
     t0 = time.time()
     object_meshes = []
+    object_infos = []
 
     for pos in object_positions:
         base_mesh = None
+        mesh_path = None
         for attempt in range(10):
             category_dirs = [d for d in glob.glob(f"{SHAPENET_DIR}/*") if os.path.isdir(d)]
             category_ids = [os.path.basename(cat) for cat in category_dirs if os.path.basename(cat) not in BLACKLIST]
@@ -588,6 +613,7 @@ def load_and_transform_objects(object_positions: np.ndarray):
 
             try:
                 base_mesh = _get_base_shapenet_mesh(model_path)
+                mesh_path = model_path
                 break
             except Exception as e:
                 continue
@@ -598,6 +624,13 @@ def load_and_transform_objects(object_positions: np.ndarray):
             sphere.paint_uniform_color([0.0, 0.0, 1.0])
             sphere.translate(pos, relative=False)
             object_meshes.append(sphere)
+            object_infos.append({
+                "type": "sphere_fallback",
+                "position": pos.tolist(),
+                "rotation": np.eye(3).tolist(),
+                "scale": [0.07, 0.07, 0.07],
+                "mesh_path": None
+            })
             continue
 
         # Make a writable copy of the cached mesh:
@@ -607,7 +640,8 @@ def load_and_transform_objects(object_positions: np.ndarray):
             obj = _cpy.deepcopy(base_mesh)
 
         # Random scale + rotation + translation
-        S = np.diag(np.random.uniform(0.3, 0.75, size=3).tolist() + [1.0])
+        scale_vec = np.random.uniform(0.3, 0.75, size=3)
+        S = np.diag(scale_vec.tolist() + [1.0])
         rot = Rotation.from_euler("xyz", np.random.uniform(0, 360, 3), degrees=True).as_matrix()
         T = np.eye(4)
         T[:3, :3] = rot.dot(S[:3, :3])
@@ -615,8 +649,15 @@ def load_and_transform_objects(object_positions: np.ndarray):
         obj.transform(T)
 
         object_meshes.append(obj)
+        object_infos.append({
+            "type": "shapenet",
+            "position": pos.tolist(),
+            "rotation": rot.tolist(),
+            "scale": scale_vec.tolist(),
+            "mesh_path": mesh_path
+        })
 
-    return object_meshes
+    return object_meshes, object_infos
 
 
 # =============================================================================
@@ -630,10 +671,14 @@ def visualize_scene(scene_mesh: o3d.geometry.TriangleMesh,
     (Unchanged. Blocks until window is closed.)
     """
     cam1_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2)
-    cam1_frame.rotate(camera_info["R_cam1"], center=(0, 0, 0))
+    R1 = camera_info["R_cam1"].copy()
+    R1[:, 2] = -R1[:, 2]
+    cam1_frame.rotate(R1, center=(0, 0, 0))
     cam1_frame.translate(camera_info["cam1_pos"])
     cam2_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2)
-    cam2_frame.rotate(camera_info["R_cam2"], center=(0, 0, 0))
+    R2 = camera_info["R_cam2"].copy()
+    R2[:, 2] = -R2[:, 2]
+    cam2_frame.rotate(R2, center=(0, 0, 0))
     cam2_frame.translate(camera_info["cam2_pos"])
 
     pts1 = [camera_info["cam1_pos"], cluster_center]
@@ -800,7 +845,9 @@ def export_dataset(images: list,
                    indices_set: list,
                    output_dir: str,
                    resolution: tuple,
-                   f1: float):
+                   f1: float,
+                   scene_info: dict,
+                   object_infos: list):
     """
     Exports each pair of images and their matches, but instead of listing UV coordinates,
     creates two binary masks (mask1, mask2) of length W*H, where a 1 indicates a matched
@@ -835,26 +882,23 @@ def export_dataset(images: list,
         "resolution": [int(W), int(H)],
         "focal_length": float(f1),
         "views": [],
-        "matches": []
+        "matches": [],
+        "scene_info": scene_info,
+        "objects": object_infos
     }
 
     # --------------------------
     # 1) Save each image + pose
     # --------------------------
     for i, (img, pose) in enumerate(zip(images, poses)):
-    # 1) drop alpha if present
         if img.ndim == 3 and img.shape[2] == 4:
             img = img[:, :, :3]
-
-        # 2) only scale floats in [0,1]
         if img.dtype == np.uint8:
             img_uint8 = img
         else:
             img_uint8 = (np.clip(img, 0.0, 1.0) * 255.0).astype(np.uint8)
-
         img_path = os.path.join(scene_dir, f"view{i}.png")
         cv2.imwrite(img_path, cv2.cvtColor(img_uint8, cv2.COLOR_RGB2BGR))
-
         meta["views"].append({
             "image": f"view{i}.png",
             "pose": pose.tolist(),
@@ -870,38 +914,24 @@ def export_dataset(images: list,
             mask_ij = match_masks[i][j]  # boolean array, length = M
             if mask_ij is None or np.sum(mask_ij) == 0:
                 continue
-
-            # uv1_all, uv2_all: shape (M,2), with (u,v) in top-left origin
             uv1_all = np.array(uv_sets[i], dtype=int)  # (M,2)
             uv2_all = np.array(uv_sets[j], dtype=int)  # (M,2)
-
-            # Masked UV coordinates for matched points only
             uv1_matched = uv1_all[mask_ij]  # shape (K,2)
             uv2_matched = uv2_all
-
-            # Build mask1 and mask2 as length W*H arrays of 0/1
-            # Initialize to zeros
             mask1 = np.zeros((W * H,), dtype=int)
             mask2 = np.zeros((W * H,), dtype=int)
-            # Build permutation array, default -1
             perm = np.full((W * H,), -1, dtype=int)
-
-            # For each matched pair, compute flat indices and set
             for (u1, v1), (u2, v2) in zip(uv1_matched, uv2_matched):
                 if not (0 <= u1 < W and 0 <= v1 < H and 0 <= u2 < W and 0 <= v2 < H):
-                    # Skip any that fall outside due to rounding errors
                     continue
                 idx1 = v1 * W + u1
                 idx2 = v2 * W + u2
                 mask1[idx1] = 1
                 mask2[idx2] = 1
                 perm[idx1] = int(idx2)
-
-            # Convert masks and perm to Python lists for JSON
             mask1_list = mask1.tolist()
             mask2_list = mask2.tolist()
             perm_list  = perm.tolist()
-
             match_entry = {
                 "view1": i,
                 "view2": j,
@@ -911,13 +941,50 @@ def export_dataset(images: list,
             }
             meta["matches"].append(match_entry)
 
-    # --------------------------
-    # 3) Write meta.json
-    # --------------------------
     with open(os.path.join(scene_dir, "meta.json"), "w") as f:
         json.dump(meta, f, indent=2)
 
     print(f"[export_dataset] Exported to {scene_dir} (took {time.time() - t0:.3f} s)")
+
+
+def filter_points_in_camera_views(
+    points: np.ndarray,
+    cam_poses: list,
+    resolution: tuple,
+    focal_length: float,
+    min_dist_from_cameras: float = 0.5,
+):
+    """
+    Returns a subset of points that are visible from at least one camera and at least
+    min_dist_from_cameras away from both cameras.
+    """
+    W, H = resolution
+    filtered = []
+    for pt in points:
+        keep = False
+        for pose in cam_poses:
+            # Camera center
+            cam_pos = pose[:3, 3]
+            # Camera rotation (world-to-cam)
+            R = pose[:3, :3]
+            # Transform point to camera coordinates
+            pt_cam = R.T @ (pt - cam_pos)
+            if pt_cam[2] <= 0.1:
+                continue  # behind or too close to camera
+            # Project to image plane
+            u = focal_length * pt_cam[0] / pt_cam[2] + W / 2
+            v = focal_length * pt_cam[1] / pt_cam[2] + H / 2
+            if 0 <= u < W and 0 <= v < H:
+                keep = True
+                break
+        # Check min distance from both cameras
+        if keep:
+            dists = [np.linalg.norm(pt - pose[:3, 3]) for pose in cam_poses]
+            if all(d > min_dist_from_cameras for d in dists):
+                filtered.append(pt)
+    if len(filtered) == 0:
+        print("[filter_points_in_camera_views] Warning: No points visible from cameras with min distance.")
+    return np.array(filtered)
 
 
 # =============================================================================
@@ -930,14 +997,28 @@ def main():
         t_start = time.time()
         print(f"\n==== Generating pair {pair_idx + 1}/{NUM_PAIRS} ====")
         try:
-            # 1) Load a random scene + detect floor (cached if re‐used)
             (scene_mesh, up_axis, plane_normal,
              floor_height, ceiling_height,
              min_bound, max_bound, points_all) = load_scene_mesh_and_detect_floor(
                 SCENENN_DIR, BAD_SCENES
             )
-
-            # 2) Sample interior points (once for this scene)
+            scene_id = getattr(scene_mesh, 'scene_id', None) or os.path.basename(scene_mesh.get_axis_aligned_bounding_box().get_center().__str__())
+            scene_mesh_path = None
+            # Try to get mesh path from SceneNN folder structure
+            for f in glob.glob(f"{SCENENN_DIR}/*/*.ply"):
+                if os.path.basename(f).startswith(scene_id):
+                    scene_mesh_path = f
+                    break
+            scene_info = {
+                "scene_id": scene_id,
+                "mesh_path": scene_mesh_path,
+                "up_axis": int(up_axis),
+                "plane_normal": plane_normal.tolist(),
+                "floor_height": float(floor_height),
+                "ceiling_height": float(ceiling_height),
+                "min_bound": min_bound.tolist(),
+                "max_bound": max_bound.tolist()
+            }
             interior_pts, interior_dists = sample_interior_points(
                 scene_mesh=scene_mesh,
                 points_all=points_all,
@@ -950,24 +1031,19 @@ def main():
                 min_clearance=0.05
             )
 
-            # 3) Place objects (once for this scene)
-            object_positions, cluster_center = place_objects(
+            # Filter points visible from at least one camera position (use a dummy look-at center for now)
+            # We'll use the mean of all interior points as a temporary cluster_center
+            temp_cluster_center = np.mean(interior_pts, axis=0)
+            # Use this to get initial camera poses
+            temp_cam_info = compute_camera_poses(
                 interior_points=interior_pts,
-                interior_distances=interior_dists,
-                min_object_distance=0.35,
-                max_objects=15
-            )
-
-            # 4) Compute camera poses (new random poses for this scene)
-            cam_info = compute_camera_poses(
-                interior_points=interior_pts,
-                cluster_center=cluster_center,
+                cluster_center=temp_cluster_center,
                 plane_normal=plane_normal,
                 floor_height=floor_height,
                 ceiling_height=ceiling_height,
                 up_axis=up_axis,
                 scene_mesh=scene_mesh,
-                target_offset_range=0.5,
+                target_offset_range=0.1,
                 cam_height_min=0.5,
                 cam_height_max=3.0,
                 min_cluster_dist=1.0,
@@ -976,17 +1052,54 @@ def main():
                 max_cam_separation=3.0,
                 max_angle_diff_deg=65.0,
             )
+            pose1 = temp_cam_info["pose1"]
+            pose2 = temp_cam_info["pose2"]
+            cam_poses = [pose1, pose2]
 
+            # Filter points visible from at least one camera and far enough from both
+            visible_pts = filter_points_in_camera_views(
+                interior_pts,
+                cam_poses,
+                RESOLUTION,
+                F1,
+                min_dist_from_cameras=0.5
+            )
+            if len(visible_pts) == 0:
+                raise RuntimeError("No object positions visible from cameras.")
+            # Randomly select up to max_objects
+            max_objects = 35
+            num_objects = min(max_objects, len(visible_pts))
+            selected_indices = np.random.choice(len(visible_pts), num_objects, replace=False)
+            object_positions = visible_pts[selected_indices]
+            # Use the mean of object positions as cluster_center for camera look-at
+            cluster_center = np.mean(object_positions, axis=0)
+            cam_info = compute_camera_poses(
+                interior_points=interior_pts,
+                cluster_center=cluster_center,
+                plane_normal=plane_normal,
+                floor_height=floor_height,
+                ceiling_height=ceiling_height,
+                up_axis=up_axis,
+                scene_mesh=scene_mesh,
+                target_offset_range=0.1,
+                cam_height_min=0.5,
+                cam_height_max=3.0,
+                min_cluster_dist=1.0,
+                max_cluster_dist=3.0,
+                min_cam_separation=0.5,
+                max_cam_separation=3.0,
+                max_angle_diff_deg=65.0,
+            )
             pose1 = cam_info["pose1"]
             pose2 = cam_info["pose2"]
 
             # 5) Load & transform objects into that scene (with caching on raw meshes)
-            object_meshes = load_and_transform_objects(object_positions)
+            object_meshes, object_infos = load_and_transform_objects(object_positions)
 
             # 6) Visualize the scene, objects, camera frames, etc.
             #visualize_scene(scene_mesh, object_meshes, cam_info, cluster_center)
 
-            # 7) Sample points & find matches between the two views
+            
             I1, I2, xyz_all, uv1_all, match_mask, uv2_all, indices = sample_and_match(
                 scene_mesh=scene_mesh,
                 object_meshes=object_meshes,
@@ -1002,6 +1115,7 @@ def main():
                 num_points=int(RESOLUTION[0]*RESOLUTION[1]*RATIO_OF_POINTS_TO_RENDER)
             )
 
+            
             #8) Visualize matched points
             # visualize_matches(
             #     I1=I1,
@@ -1011,17 +1125,15 @@ def main():
             #     match_mask=match_mask,
             #     resolution=RESOLUTION
             # )
-
-            # 9) Export dataset (timestamps guarantee unique subfolders per pair)
+            
             images = [I1, I2]
             poses = [pose1, pose2]
             uv_sets = [uv1_all, uv2_all]
             xyz_set = [xyz_all, xyz_all]
-            match_masks = [[None] * NUM_CAMERAS for _ in range(NUM_CAMERAS)]
+            match_masks = [[None]*2 for _ in range(2)]
             match_masks[0][1] = match_mask
             match_masks[1][0] = match_mask
             indices_set = [indices, indices]
-
             export_dataset(
                 images=images,
                 poses=poses,
@@ -1031,20 +1143,72 @@ def main():
                 indices_set=indices_set,
                 output_dir=OUTPUT_DIR,
                 resolution=RESOLUTION,
-                f1=F1
+                f1=F1,
+                scene_info=scene_info,
+                object_infos=object_infos
             )
-
-            # Pause 1 second so the next timestamp folder differs
             print(f"[export_dataset] Exported (took {time.time() - t_start:.3f}s)")
-
-            # If all operations succeed, increment the counter to proceed to the next pair
             pair_idx += 1
-
+            del scene_mesh, object_meshes, object_infos, I1, I2, xyz_all, uv1_all, match_mask, uv2_all, indices
+            gc.collect()
         except RuntimeError as e:
             print(f"\nCaught a RuntimeError: {e}")
-            print(f"Retrying generation for pair {pair_idx + 1}.\n")
+            print(f"Retrying generation for pair {pair_idx + 1}.")
             continue
 
+def analyze_random_match(validation_root: str):
+    """
+    Recursively searches for all meta.json files two directories deep under validation_root.
+    Picks one at random, loads it, and prints match statistics.
+    """
+    meta_paths = []
+
+    # Walk the directory tree and find all meta.json two levels deep
+    for run_dir in os.listdir(validation_root):
+        run_path = os.path.join(validation_root, run_dir)
+        if not os.path.isdir(run_path):
+            continue
+        for scene_dir in os.listdir(run_path):
+            scene_path = os.path.join(run_path, scene_dir)
+            meta_path = os.path.join(scene_path, "meta.json")
+            if os.path.isfile(meta_path):
+                meta_paths.append(meta_path)
+
+    if not meta_paths:
+        print("[analyze_random_match] No meta.json files found.")
+        return
+
+    # Pick one meta.json at random
+    selected_meta = random.choice(meta_paths)
+    with open(selected_meta, "r") as f:
+        meta = json.load(f)
+
+    matches = meta.get("matches", [])
+    resolution = meta.get("resolution", [0, 0])
+    if not matches or not resolution:
+        print("[analyze_random_match] No match data or resolution found.")
+        return
+
+    W, H = resolution
+    total_pixels = W * H
+
+    match = random.choice(matches)
+    mask1 = np.array(match["mask1"], dtype=bool)
+    perm = np.array(match["perm"], dtype=int)
+
+    matched = (mask1 & (perm != -1))
+    num_matched = np.sum(matched)
+
+    scene_id = meta.get("scene_id", "unknown")
+    view1 = match.get("view1", "?")
+    view2 = match.get("view2", "?")
+
+    print(f"[{scene_id}] Match between view{view1} and view{view2}:")
+    print(f"  Matched pixels: {num_matched}")
+    print(f"  Total pixels:   {total_pixels}")
+    print(f"  Match percent:  {100.0 * num_matched / total_pixels:.4f}%")
 
 if __name__ == "__main__":
     main()
+    #analyze_random_match("./contrastive_3d_final/val")
+

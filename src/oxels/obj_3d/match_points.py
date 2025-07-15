@@ -68,7 +68,7 @@ def sample_random_on_mesh_fast_o3d(
     tol: float = 1e-6
 ):
     t0 = time.perf_counter()
-    point_sample_count: int = N_max*5
+    point_sample_count: int = N_max*200
     # Step 1: Sample surface points
     sampled_points = triangle_mesh.sample_points_uniformly(number_of_points=point_sample_count)
     sampled_points_np = np.asarray(sampled_points.points)
