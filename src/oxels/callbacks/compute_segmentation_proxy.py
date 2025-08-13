@@ -47,7 +47,7 @@ class ComputeOxelSegmentationStat(L.Callback):
     def on_validation_epoch_end(self, trainer, pl_module):
         if trainer.current_epoch % self.every_n_epochs != 0:
             return
-
+        print(f"Computing segmentation proxy for {self.n_images} images...")
         all_boxels, all_labels = [], []
         image_counter = 0
         for images, labels in self.dataloader:
@@ -67,7 +67,7 @@ class ComputeOxelSegmentationStat(L.Callback):
         all_labels = np.concatenate(all_labels, axis=0)[: self.n_images]
 
         tp_ratios = {}
-        for SAMPLE_LABEL, _ in tqdm(ADE20K_CLASS_LABELS.items()):
+        for SAMPLE_LABEL, _ in ADE20K_CLASS_LABELS.items():
             sample_boxels = all_boxels[np.where(all_labels == SAMPLE_LABEL)]
             unique_sample_boxels, sample_counts = np.unique(sample_boxels, return_counts=True)
             unique_sample_boxels = unique_sample_boxels[np.argsort(sample_counts)]
