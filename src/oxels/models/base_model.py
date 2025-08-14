@@ -21,12 +21,14 @@ class BaseModel(MetricsMixin, L.LightningModule):
         lr_div_factor: float = 25.0,
         lr_final_div_factor: float = 1e4,
         contrastive_loss_weight: float = 0.5,
+        loss_norm_type: str = "inf",
     ):
         super().__init__()
 
         if not 0.0 <= contrastive_loss_weight <= 1.0:
             raise ValueError("contrastive_loss_weight must be in [0, 1] and is used to compute (1-w)*transforms_loss + w*contrastive_loss.")
-
+        self.save_hyperparameters(ignore=["backbone"])
+        """
         self.save_hyperparameters(
             learning_rate,
             weight_decay,
@@ -34,8 +36,10 @@ class BaseModel(MetricsMixin, L.LightningModule):
             lr_div_factor,
             lr_final_div_factor,
             contrastive_loss_weight,
+            loss_norm_type=loss_norm_type,
             ignore=["backbone"],
         )
+        """
         self.backbone = backbone
 
     @jit
@@ -49,11 +53,11 @@ class BaseModel(MetricsMixin, L.LightningModule):
         oxels_view1 = self(view1)
         oxels_view2 = self(view2)
 
-        loss = vectorized_loss(oxels_view1, oxels_view2, permutation, flags, mask1, mask2)
+        loss = vectorized_loss(oxels_view1, oxels_view2, permutation, flags, mask1, mask2, norm=self.hparams.loss_norm_type)
 
         c = self.hparams.contrastive_loss_weight
         if c > 0.0:
-            closs = vectorized_contrastive_loss(oxels_view1, oxels_view2, permutation, mask1, mask2)
+            closs = vectorized_contrastive_loss(oxels_view1, oxels_view2, permutation, mask1, mask2, norm=self.hparams.loss_norm_type)
             loss = (1 - c) * loss + c * closs
 
         return loss

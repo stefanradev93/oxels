@@ -1,7 +1,7 @@
 import torch
 
 
-def vectorized_loss(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tensor:
+def vectorized_loss(oview1, oview2, indices, flags, mask1, mask2, norm = "inf") -> torch.Tensor:
     """
     Vectorized version of the original loss function for improved performance.
 
@@ -49,7 +49,15 @@ def vectorized_loss(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tenso
 
     # per‐element difference and max‐over‐channels
     diff = o1 - o2g  # (B, C, N)
-    max_diff = 0.5 * diff.abs().max(dim=1).values  # (B, N)
+
+    if norm == "inf":
+        diff = 0.5 * diff.abs().max(dim=1).values
+    elif norm == "l1":
+        diff = 0.5 * diff.abs().mean(dim=1)
+    elif norm == "l2":
+        diff = 0.5 * diff.square().mean(dim=1)
+    else:
+        raise NotImplementedError("norm must be in ['inf', 'l1', 'l2']")
 
     # per‐sample average of flags
     flags_mean = flags.mean(dim=1, keepdim=True)  # (B, 1)
@@ -58,7 +66,7 @@ def vectorized_loss(oview1, oview2, indices, flags, mask1, mask2) -> torch.Tenso
     base = 0.25 * (1.0 - flags_mean)  # (B, 1)
 
     # per‐element loss
-    loss_elem = base + (max_diff * (2 * flags - 1) + max_diff**2)  # (B, N)
+    loss_elem = base + (diff * (2 * flags - 1) + diff**2)  # (B, N)
 
     # build combined mask: mask1[b,n] * mask2[b, indices[b,n]]
     m2g = torch.gather(m2, dim=1, index=indices)  # (B, N)

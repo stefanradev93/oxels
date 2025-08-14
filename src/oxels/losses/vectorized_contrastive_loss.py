@@ -1,7 +1,7 @@
 import torch
 
 
-def vectorized_contrastive_loss(oview1, oview2, indices, mask1, mask2, eps=1e-8) -> torch.Tensor:
+def vectorized_contrastive_loss(oview1, oview2, indices, mask1, mask2, eps=1e-8, norm="inf") -> torch.Tensor:
     """
     Vectorized version of contrastive_loss.
 
@@ -47,10 +47,17 @@ def vectorized_contrastive_loss(oview1, oview2, indices, mask1, mask2, eps=1e-8)
     diff = o1.unsqueeze(1) - o2g.unsqueeze(0)  # (B, B, C, N)
 
     # max‐over‐channels & scale
-    max_diff = 0.5 * diff.abs().max(dim=2).values  # (B, B, N)
+    if norm == "inf":
+        diff = 0.5 * diff.abs().max(dim=2).values  # (B, B, N)
+    elif norm == "l1":
+        diff = 0.5 * diff.abs().mean(dim=2)
+    elif norm == "l2":
+        diff = 0.5 * diff.square().mean(dim=2)
+    else:
+        raise NotImplementedError("norm must be in ['inf', 'l1', 'l2']")
 
     # per‐pair loss elements
-    loss_elem = 0.25 - max_diff + max_diff**2  # (B, B, N)
+    loss_elem = 0.25 - diff + diff**2  # (B, B, N)
 
     # pairwise combined masks
     mask_pair = m1.unsqueeze(1) * m2g.unsqueeze(0)  # (B, B, N)
