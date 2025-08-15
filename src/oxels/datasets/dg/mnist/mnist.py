@@ -80,6 +80,6 @@ class MNISTDataset(DomainGeneralizationDataset):
         if self.domain_transforms is not None:
             transform = self.domain_transforms[domain]
             if transform is not None:
-                img, label = transform(img, label)
-
+                img, label_domain = transform(img, label)
+                label = (label_domain, label)
         return img, label
